@@ -1,0 +1,598 @@
+{
+ "pi05": {
+  "base": {
+   "libero_10": {
+    "position": {
+     "rate": 9.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 66.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 86.0,
+     "n": 100
+    },
+    "task": {
+     "rate": 19.0,
+     "n": 100
+    }
+   },
+   "libero_goal": {
+    "task": {
+     "rate": 21.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 31.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 81.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 90.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 54.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 44.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 98.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 95.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 11.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 21.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 87.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 98.0,
+     "n": 100
+    }
+   }
+  },
+  "ours": {
+   "libero_10": {
+    "task": {
+     "rate": 14.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 16.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 21.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 50.0,
+     "n": 100
+    }
+   },
+   "libero_goal": {
+    "task": {
+     "rate": 11.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 28.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 60.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 61.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 59.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 51.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 88.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 99.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 79.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 42.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 94.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 90.0,
+     "n": 100
+    }
+   }
+  },
+  "ours_realperc": {
+   "libero_10": {
+    "task": {
+     "rate": 6.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 8.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 19.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 28.0,
+     "n": 100
+    }
+   },
+   "libero_goal": {
+    "task": {
+     "rate": 11.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 25.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 52.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 61.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 33.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 33.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 47.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 57.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 49.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 32.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 72.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 75.0,
+     "n": 100
+    }
+   }
+  },
+  "vls_full": {
+   "libero_goal": {
+    "task": {
+     "rate": 31.5,
+     "n": 200
+    },
+    "position": {
+     "rate": 24.5,
+     "n": 200
+    },
+    "object": {
+     "rate": 40.5,
+     "n": 200
+    },
+    "language": {
+     "rate": 59.5,
+     "n": 200
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 32.5,
+     "n": 200
+    },
+    "position": {
+     "rate": 31.0,
+     "n": 200
+    },
+    "object": {
+     "rate": 44.5,
+     "n": 200
+    },
+    "language": {
+     "rate": 55.5,
+     "n": 200
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 40.5,
+     "n": 200
+    },
+    "position": {
+     "rate": 41.0,
+     "n": 200
+    },
+    "object": {
+     "rate": 79.0,
+     "n": 200
+    },
+    "language": {
+     "rate": 86.5,
+     "n": 200
+    }
+   },
+   "libero_10": {
+    "task": {
+     "rate": 23.5,
+     "n": 200
+    },
+    "position": {
+     "rate": 14.0,
+     "n": 200
+    },
+    "object": {
+     "rate": 19.0,
+     "n": 200
+    },
+    "language": {
+     "rate": 44.5,
+     "n": 200
+    }
+   }
+  },
+  "vls_grad": {
+   "libero_goal": {
+    "task": {
+     "rate": 16.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 31.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 27.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 33.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 4.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 11.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 2.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 10.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 41.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 37.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 38.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 60.0,
+     "n": 100
+    }
+   },
+   "libero_10": {
+    "task": {
+     "rate": 8.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 7.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 6.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 4.0,
+     "n": 100
+    }
+   }
+  }
+ },
+ "groot": {
+  "ours": {
+   "libero_10": {
+    "task": {
+     "rate": 0.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 0.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 19.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 39.0,
+     "n": 100
+    }
+   },
+   "libero_goal": {
+    "task": {
+     "rate": 12.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 0.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 60.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 80.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 9.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 11.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 74.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 89.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 59.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 3.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 90.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 95.0,
+     "n": 100
+    }
+   }
+  },
+  "ours_realperc": {
+   "libero_10": {
+    "task": {
+     "rate": 2.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 0.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 10.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 21.0,
+     "n": 100
+    }
+   },
+   "libero_goal": {
+    "task": {
+     "rate": 9.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 5.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 60.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 74.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 3.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 7.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 38.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 54.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 40.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 2.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 68.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 79.0,
+     "n": 100
+    }
+   }
+  },
+  "base": {
+   "libero_10": {
+    "task": {
+     "rate": 6.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 0.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 45.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 75.0,
+     "n": 100
+    }
+   },
+   "libero_goal": {
+    "task": {
+     "rate": 9.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 0.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 75.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 97.0,
+     "n": 100
+    }
+   },
+   "libero_object": {
+    "task": {
+     "rate": 8.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 1.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 86.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 94.0,
+     "n": 100
+    }
+   },
+   "libero_spatial": {
+    "task": {
+     "rate": 54.0,
+     "n": 100
+    },
+    "position": {
+     "rate": 1.0,
+     "n": 100
+    },
+    "object": {
+     "rate": 96.0,
+     "n": 100
+    },
+    "language": {
+     "rate": 96.0,
+     "n": 100
+    }
+   }
+  }
+ }
+}

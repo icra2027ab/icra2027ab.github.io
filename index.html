@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual-Geometric Policy Steering</title>
+<meta name="description" content="Visual-Geometric Policy Steering from In-Context Aligned Abstractions. Anonymous project page for double-blind review: supplementary video, rollout videos, and the full appendix.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232f6fdb'/><path d='M7 22 C12 10, 20 10, 25 16' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='25' cy='16' r='3' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<script>
+  try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">VG Policy Steering</a>
+    <div class="links" id="navlinks">
+      <a href="#video">Video</a>
+      <a href="#method">Method</a>
+      <a href="#sim">Simulation</a>
+      <a href="#real">Real robot</a>
+      <a href="#explorer">All rollouts</a>
+      <a href="#appendix" class="appx">Appendix</a>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle color theme" title="Toggle theme">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="venue">Under review · ICRA 2027</div>
+    <h1>Visual-Geometric Policy Steering from In-Context Aligned Abstractions</h1>
+    <div class="authors">Anonymous authors · supplementary website for double-blind review</div>
+    <div class="btn-row">
+      <a class="btn" href="#video"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Watch video (3 min)</a>
+      <a class="btn ghost" href="#explorer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Browse all rollouts</a>
+      <a class="btn ghost" href="#appendix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h8M8 8h5"/></svg>Full appendix</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="statVideos">·</b><span>rollout videos on this page</span></div>
+      <div class="stat"><b>+14.5</b><span>pts task success on LIBERO-Pro (π<sub>0.5</sub>)</span></div>
+      <div class="stat"><b>2.1×</b><span>real-robot success one grid step off the training positions</span></div>
+      <div class="stat"><b>45.8→4.2%</b><span>object confusion on unseen objects</span></div>
+      <div class="stat"><b>1.2×</b><span>inference overhead (vs. ~20× for VLS)</span></div>
+    </div>
+
+    <p class="tldr"><strong>TL;DR.</strong> We steer a <em>frozen</em> flow-matching policy at test time with a single visual-geometric signal: a VLM picks which object-relational distances matter in a retrieved successful rollout (e.g. finger to can, can to basket, along chosen axes), and we push each denoising step so the predicted action chunk reproduces those distance trends in the new scene. No weight updates, no extra demonstrations.</p>
+
+    <figure class="card teaser fade-in">
+      <div class="figure-white"><img src="assets/img/main.png" alt="Overview of the visual-geometric policy steering framework: offline retrieval and abstraction, online steering of the frozen policy." loading="eager"></div>
+      <figcaption><b>Overview.</b> <em>Offline:</em> retrieve the most relevant successful in-distribution rollout by text and image similarity, resolve object correspondence, and let a VLM choose the relevant object-relational distance pairs, precomputed per timestep as reference trends. <em>Online:</em> perception projects the live scene into the same distance space, and a steering term $\Delta A'$ measuring deviation from the reference trends is injected into denoising, using a dynamics model to forecast what a candidate action chunk would do.</figcaption>
+    </figure>
+  </div>
+</header>
+
+<!-- ============================ VIDEO ============================ -->
+<section class="block" id="video">
+  <div class="wrap">
+    <div class="eyebrow">Supplementary video</div>
+    <h2>Three-minute overview</h2>
+    <p class="lead">Narrated, with subtitles. Covers the motivation, the pipeline, and both simulated and real-robot results.</p>
+    <div class="video-frame fade-in">
+      <video controls preload="metadata" poster="assets/videos/supplementary.jpg" playsinline>
+        <source src="assets/videos/supplementary.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ABSTRACT ============================ -->
+<section class="block" id="abstract">
+  <div class="wrap">
+    <div class="eyebrow">Abstract</div>
+    <h2>Abstract</h2>
+    <p class="lead">Adapting robot policies to out-of-distribution (OOD) settings with limited real-world data remains a key bottleneck to generalist robots. The multimodality and scarcity of robotics data lead end-to-end approaches to overfit and break under small distribution shifts. Test-time adaptation can alleviate this by correcting frozen policies at inference, but most methods ground their correction in a signal learned implicitly from robotic datasets, making it susceptible to the same shifts as the policy it corrects. Recent methods that instead exploit explicit spatial information are typically limited to coarse corrections, missing the nuanced, task-relevant motion most manipulation tasks require. We correct existing policies by transferring the nuanced motion of successful in-distribution rollouts, captured along meaningful geometric axes, known here as object-relational distance pairs. Our framework leverages the semantic understanding of Large Vision Models (LVMs) and Vision-Language Models (VLMs) reasoning, which combines the task-relevant entity pairs and their object-relational distance projections into a single tailored visual-geometric guidance signal. In a simulation benchmark, it efficiently corrects flow-matching policies under pose and task-goal shifts; on a real robot experiment, it widens the region of the workspace the frozen policy covers, more than doubling its success rate on cable placements one grid step outside the training positions, and steers a single-task policy toward objects it was never trained on while nearly eliminating object confusion.</p>
+  </div>
+</section>
+
+<!-- ============================ METHOD ============================ -->
+<section class="block" id="method">
+  <div class="wrap">
+    <div class="eyebrow">Method</div>
+    <h2>From one successful rollout to a steering signal</h2>
+    <p class="lead">The policy stays frozen. What changes is the guidance signal: a set of distance pairs between task-relevant entities, each evaluated per timestep along a VLM-selected axis or plane, so it captures <em>how</em> the demonstrated motion unfolds rather than only where it ends. Click through the stages.</p>
+
+    <div class="stepper fade-in" id="stepper">
+      <div class="steps" id="steps"></div>
+      <div class="step-view">
+        <video id="stepVideo" muted playsinline autoplay loop preload="metadata"></video>
+        <div class="txt" id="stepText"></div>
+      </div>
+    </div>
+
+    <h3>Differentiable guidance injection</h3>
+    <div class="grid-2">
+      <div>
+        <p>A candidate chunk $A_t$ is rolled out by a differentiable dynamics model $\mathcal{F}$ (an OSC velocity integrator in simulation, UR5 forward kinematics on hardware). This gives a forecast $d^n_{t'}(A_t)$ of every selected relation $n$ at every chunk step $t'$, compared against the aligned reference $d^{*n}_{t'}$:</p>
+        <div class="eqbox">$$\mathcal{L}_{guide}(A_t) = \tfrac{1}{2}\sum_{n=1}^{N} \sum_{t'=1}^{T} w_n \left( d^{n}_{t'}(A_t) - d^{*n}_{t'} \right)^2$$</div>
+        <p>Position, orientation (projected body-frame vectors, no rotation-parameter singularities) and gripper aperture all enter this single sum. At each denoising step we take a unit descent direction at the policy's tentative next iterate and pick the step size with a golden-section line search:</p>
+        <div class="eqbox">$$\hat d = -\frac{\nabla_A \mathcal{L}_{guide}(A^{(k)}_t + \Delta t\, v)}{\lVert\cdot\rVert},\quad \alpha^\star = \arg\min_{\alpha\in[0,\alpha_{\max}]} \mathcal{L}_{guide}(A^{(k)}_t + \alpha \hat d),\quad v \leftarrow v + \frac{\alpha^\star}{\Delta t}\hat d\, c$$</div>
+        <p class="small muted">A do-no-harm guard returns $\alpha^\star = 0$ if no positive step reduces the loss, so the unsteered base step is always admissible. See <a href="#A-injection">Appendix A.7</a> for the algorithm.</p>
+      </div>
+      <figure class="card mt0" style="align-self:start">
+        <div class="figure-white"><img src="assets/img/guidance.png" alt="Guidance injection loop: forward kinematics rollout, guidance loss, line search, velocity-field correction." loading="lazy"></div>
+        <figcaption>At each denoising step the candidate chunk is rolled out, the guidance loss (position, orientation, gripper) is differentiated, a golden-section line search sets the step, and the correction is applied to the velocity field.</figcaption>
+      </figure>
+    </div>
+
+    <div class="grid-2" style="margin-top:22px">
+      <figure class="card mt0">
+        <video src="assets/videos/method/Fig1_DistancePairs3D.mp4" poster="assets/videos/method/Fig1_DistancePairs3D.jpg" muted loop autoplay playsinline preload="none" class="lazyplay"></video>
+        <figcaption><b>Same trends, new object.</b> Distance pairs are expressed between entities, so the trends learned on a cube transfer to a cylinder the policy never saw.</figcaption>
+      </figure>
+      <figure class="card mt0">
+        <video src="assets/videos/method/VelocityFieldCorrection.mp4" poster="assets/videos/method/VelocityFieldCorrection.jpg" muted loop autoplay playsinline preload="none" class="lazyplay"></video>
+        <figcaption><b>Velocity-field correction.</b> The guidance reshapes the flow-matching velocity field during denoising while the policy weights stay frozen.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SIM RESULTS ============================ -->
+<section class="block" id="sim">
+  <div class="wrap">
+    <div class="eyebrow">Simulation · LIBERO-Pro</div>
+    <h2>Largest gains under task and position shifts</h2>
+    <p class="lead">Two frozen flow-matching policies, $\pi_{0.5}$ and GR00T N1.7, on the four LIBERO-Pro suites. We compare against VLS, the main training-free gradient-based steering baseline, reproduced with its released code.</p>
+
+    <div class="focus-card fade-in">
+      <div class="fc-head"><span class="eyebrow" style="margin:0">Where steering matters most</span><b>LIBERO-Object and LIBERO-Spatial, task and position shifts (π<sub>0.5</sub>)</b></div>
+      <div class="kpis">
+        <div class="kpi"><b>11 → <span style="color:var(--accent)">59%</span></b><span>Object suite, task shift (+48)</span></div>
+        <div class="kpi"><b>21 → <span style="color:var(--accent)">51%</span></b><span>Object suite, position shift (+30)</span></div>
+        <div class="kpi"><b>54 → <span style="color:var(--accent)">79%</span></b><span>Spatial suite, task shift (+25)</span></div>
+        <div class="kpi"><b>32.5 → <span style="color:var(--accent)">57.8%</span></b><span>average of these four cells (spatial position: 44 → 42)</span></div>
+      </div>
+      <div class="controls" style="margin:10px 0 0"><label>Watch</label><div class="seg" id="focusSeg">
+        <button data-s="libero_object" data-p="task">Object · task</button>
+        <button data-s="libero_object" data-p="position">Object · position</button>
+        <button data-s="libero_spatial" data-p="task">Spatial · task</button>
+        <button data-s="libero_spatial" data-p="position">Spatial · position</button>
+      </div></div>
+    </div>
+
+    <div class="q"><span class="tag">Q1</span>Does visual-geometric steering improve OOD generalization over existing steering?</div>
+    <div class="grid-2">
+      <div class="chart-card">
+        <h4>Success rate (%), averaged over the four suites</h4>
+        <div class="controls">
+          <div class="seg" id="q1Seg">
+            <button data-k="avg" class="on">Task + Pos avg</button>
+            <button data-k="task">Task</button>
+            <button data-k="pos">Position</button>
+            <button data-k="object" class="minor" title="Base already near-saturated">Object shift</button>
+            <button data-k="lang" class="minor" title="Base already near-saturated">Language shift</button>
+          </div>
+        </div>
+        <div class="bars" id="q1Bars"></div>
+        <p class="chart-note">Dashed line: unsteered $\pi_{0.5}$. VLS grad-only disables its particle resampling, matching our single-chain compute. On object and language shifts the base is already near-saturated and guidance can perturb correct trajectories; the gains concentrate on task and positional shifts (<a href="#A-breakdown">A.9</a>).</p>
+      </div>
+      <div class="chart-card">
+        <h4>Generality across base policies</h4>
+        <div class="controls">
+          <div class="seg" id="xpSeg">
+            <button data-k="avg" class="on">Average</button>
+            <button data-k="task">Task</button>
+            <button data-k="pos">Position</button>
+          </div>
+        </div>
+        <div class="bars" id="xpBars"></div>
+        <p class="chart-note">The guidance is policy-agnostic. GR00T N1.7 is near zero on positional shifts, which limits its headroom; the gain is larger for $\pi_{0.5}$, whose short action chunk the per-step guidance steers most directly.</p>
+      </div>
+    </div>
+
+
+    <h3 id="simPairsTitle">Base vs. ours, same task and initial state</h3>
+    <div class="controls" id="pairControls">
+      <label>Suite</label><select id="pairSuite"></select>
+      <label>Shift</label><select id="pairPert"></select>
+      <label>Policy</label><select id="pairPolicy"></select>
+    </div>
+    <div class="pairs" id="pairs"><div class="empty">Loading rollouts…</div></div>
+
+    <div class="q"><span class="tag">Q2</span>What is the inference-time overhead?</div>
+    <div class="grid-2">
+      <div class="chart-card">
+        <h4>Per-action-chunk latency on $\pi_{0.5}$ (ms)</h4>
+        <div class="bars" id="profBars"></div>
+        <p class="chart-note">Mean over the four suites, CUDA-synchronized. Ours runs one denoising chain plus a JIT-compiled distance-pair loss inside the line search, with no extra policy forward pass. Full VLS re-runs the policy across 20 particles. On hardware, perception adds 113 ± 2 ms per inference plus a one-time 29.5 ± 3.1 s setup (<a href="#A-realtiming">A.12</a>).</p>
+      </div>
+      <figure class="card mt0"><div class="figure-white"><img src="assets/img/profiling.svg" alt="Stacked latency breakdown per method" loading="lazy"></div>
+        <figcaption>Per-chunk inference overhead as reported in the paper.</figcaption></figure>
+    </div>
+
+    <div class="q"><span class="tag">Q3</span>Which components drive the gains?</div>
+    <div class="chart-card">
+      <h4>Guidance-mechanism ablation, $\pi_{0.5}$ (task + positional average, %)</h4>
+      <div class="bars" id="ablBars"></div>
+      <p class="chart-note">Components enabled cumulatively. Raw fixed-step gradients are poorly scaled and slightly hurt; the per-step line search recovers most of the gain and per-pair error normalization completes it. The two intermediate variants use a 3-trial sweep (30 episodes per cell); base and full use the 10-trial main runs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ REAL ROBOT ============================ -->
+<section class="block" id="real">
+  <div class="wrap">
+    <div class="eyebrow">Real robot · UR5</div>
+    <h2>Full pipeline on hardware, open-vocabulary perception</h2>
+    <p class="lead">A single $\pi_{0.5}$ checkpoint finetuned on 28 demonstrations of <em>"Put all cables in the bag"</em>, frozen throughout. The demonstration database holds <b>one</b> successful rollout of that same policy. No human demonstrations, no extra training data, no weight updates. Every rollout of both experiments is viewable below.</p>
+
+    <div class="grid-2">
+      <figure class="card mt0"><img src="assets/img/cable_position_baseline_v3_training_heatmap.jpg" alt="Training distribution of cable grasp positions" loading="lazy"><figcaption><b>Training distribution:</b> density of the 110 cable grasps in the 28 demonstrations.</figcaption></figure>
+      <figure class="card mt0"><img src="assets/img/traj_cable_bagging.jpg" alt="Reference rollout split into sub-trajectories" loading="lazy"><figcaption><b>The single reference rollout</b>, end-effector path split into sub-trajectories.</figcaption></figure>
+    </div>
+
+    <div class="q"><span class="tag">Q4</span>Does the guidance recover positional OOD failures?</div>
+    <p>48 placements per method: 3 trials in each cell of a 4 × 4 grid (15 cm × 7.5 cm spacing). Each rollout's measured cable position is expressed as a Mahalanobis distance $\sigma$ from the training grasps, cut into zones at $2\sigma$ and $4.5\sigma$ (<a href="#A-positional">A.13</a>). <b>Click a cell</b> to watch its base and guided rollouts side by side.</p>
+    <p class="small muted">Clip note: the base runs do not run the perception stack, so their only recording is one frame per policy inference, shown slowed 3×. Guided clips are real-time perception-overlay recordings. Outcomes follow the post-hoc annotation used in the paper.</p>
+
+    <div class="kpis" id="posKpis"></div>
+
+    <div class="card pad fade-in">
+      <div class="gridpair">
+        <div><div class="gridtitle"><b style="color:var(--base)">Base (no steering)</b><span id="gBaseSum"></span></div><div class="cellgrid" id="gridBase"></div></div>
+        <div><div class="gridtitle"><b style="color:var(--accent)">Ours</b><span id="gOursSum"></span></div><div class="cellgrid" id="gridOurs"></div></div>
+      </div>
+      <div class="legend">
+        <span><i class="s"></i>success</span><span><i class="f"></i>failure</span>
+        <span><i class="zin"></i>in-distribution (&lt;2σ)</span><span><i class="zfar"></i>far-OOD (&gt;4.5σ)</span>
+        <span>unmarked: near-OOD</span>
+      </div>
+      <div class="cellview" id="cellView"></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="t">
+        <thead><tr><th>Zone</th><th>Base</th><th>Ours</th><th>Δ (pts)</th><th>p (Fisher)</th></tr></thead>
+        <tbody>
+          <tr><td>In-distribution (&lt;2σ)</td><td>100.0 <span class="ci">9/9 [70, 100]</span></td><td>100.0 <span class="ci">9/9 [70, 100]</span></td><td>0.0</td><td>1.00</td></tr>
+          <tr><td>Near-OOD (2 to 4.5σ)</td><td>29.6 <span class="ci">8/27 [16, 48]</span></td><td class="best">63.0 <span class="ci">17/27 [44, 79]</span></td><td class="best">+33.3</td><td class="best">0.028</td></tr>
+          <tr><td>Far-OOD (&gt;4.5σ)</td><td>0.0 <span class="ci">0/12 [0, 24]</span></td><td>0.0 <span class="ci">0/12 [0, 24]</span></td><td>0.0</td><td>1.00</td></tr>
+          <tr class="sum"><td><i>Pooled OOD (&gt;2σ)</i></td><td>20.5 <span class="ci">8/39 [11, 36]</span></td><td class="best">43.6 <span class="ci">17/39 [29, 59]</span></td><td>+23.1</td><td>0.051</td></tr>
+          <tr><td><i>Pooled, full sweep</i></td><td>35.4 <span class="ci">17/48 [23, 50]</span></td><td class="best">54.2 <span class="ci">26/48 [40, 67]</span></td><td>+18.8</td><td>0.10</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap">Success rate (%), successes/rollouts and 95% Wilson interval. Every placement is run by both methods.</p>
+
+    <div class="grid-2" style="margin-top:22px">
+      <figure class="card mt0"><img src="assets/img/cable_position_on_camera_no_zones_baseline.jpg" alt="Per-cell outcomes of the base policy in the camera view" loading="lazy" style="width:100%"><figcaption><b>Base (no steering)</b>, per-cell outcomes in the camera view: filled green dots are successes, red rings failures.</figcaption></figure>
+      <figure class="card mt0"><img src="assets/img/cable_position_on_camera_no_zones_guided.jpg" alt="Per-cell outcomes of the guided policy in the camera view" loading="lazy" style="width:100%"><figcaption><b>Ours</b>, per-cell outcomes in the camera view.</figcaption></figure>
+    </div>
+    <div style="max-width:760px;margin:22px auto 0">
+      <figure class="card mt0"><div class="figure-white"><img src="assets/img/ood_success_vs_distance_paper.png" alt="Success vs Mahalanobis distance with logistic fits" loading="lazy"></div><figcaption>Every rollout at its measured Mahalanobis distance, per-zone rates with Wilson intervals, and a per-method logistic fit crossing 50% at 2.8σ (base) and 3.4σ (ours).</figcaption></figure>
+    </div>
+
+    <div class="q"><span class="tag">Q5</span>Can the policy be steered toward objects it was never trained on?</div>
+    <p>Cable, banana and spoon share the workspace; the prompt names one. The policy was only trained on the cable. Rows: instructed object. Columns: object the arm went for. <b>Click a cell</b> to see those trials.</p>
+    <div class="kpis">
+      <div class="kpi"><b>54.2 → <span style="color:var(--accent)">95.8%</span></b><span>reached the named object</span></div>
+      <div class="kpi"><b>33.3 → <span style="color:var(--accent)">62.5%</span></b><span>task success (grasped and bagged)</span></div>
+      <div class="kpi"><b>45.8 → <span style="color:var(--accent)">4.2%</span></b><span>confusion (grasped a distractor)</span></div>
+    </div>
+    <div class="card pad fade-in">
+      <div class="gridpair">
+        <div><div class="gridtitle"><b style="color:var(--base)">Base (no steering)</b><span id="cBaseSum"></span></div><div class="conf" id="confBase"></div></div>
+        <div><div class="gridtitle"><b style="color:var(--accent)">Ours</b><span id="cOursSum"></span></div><div class="conf" id="confOurs"></div></div>
+      </div>
+      <div class="cellview" id="confView"></div>
+    </div>
+    <div class="grid-2" style="margin-top:22px">
+      <figure class="card mt0"><div class="figure-white"><img src="assets/img/disambiguation.png" alt="Distance pairs used per sub-trajectory in the cluttered scene" loading="lazy"></div><figcaption>Disambiguating the target in a cluttered scene: distance pairs per sub-trajectory (ST0 approach, ST1 transport) anchored on the named object.</figcaption></figure>
+      <figure class="card mt0"><div class="figure-white"><img src="assets/img/disambiguation_experiment.png" alt="Reference rollout and confusion matrices" loading="lazy"></div><figcaption>Reference rollout above the new setting, and confusion matrices (instructed in rows, reached in columns) for base and guided.</figcaption></figure>
+    </div>
+
+    <h3>Failure modes</h3>
+    <p>Under positional shift the base knows <em>what</em> to grasp and fails to reach it (all 36 failures are grasp misses). Under task shift it reaches confidently for the <em>wrong</em> object (11 of 16 failures). Guidance corrects both, and residual failures move downstream past contact, into drops and collisions during transport, which the guidance signal does not address.</p>
+    <div class="grid-2">
+      <figure class="card mt0"><div class="figure-white"><img src="assets/img/failure_modes_positional.png" alt="Failure modes, positional variation" loading="lazy" style="max-width:420px;margin:auto"></div><figcaption>Positional variation.</figcaption></figure>
+      <figure class="card mt0"><div class="figure-white"><img src="assets/img/failure_modes_disambiguation.png" alt="Failure modes, task variation" loading="lazy" style="max-width:420px;margin:auto"></div><figcaption>Task variation.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ EXPLORER ============================ -->
+<section class="block" id="explorer">
+  <div class="wrap">
+    <div class="eyebrow">Rollout explorer</div>
+    <h2>Every hosted rollout, filterable</h2>
+    <p class="lead">Simulated and real rollouts, successes and failures, unfiltered by outcome. Hover a tile to preview, click to open with full metadata; use ← → in the viewer to step through the current selection. Guided simulation clips link to a dashboard version showing the live guidance signals, and open-vocabulary-perception clips to the segmentation overlay.</p>
+    <div class="explorer-bar" id="exBar">
+      <div class="f"><label>Domain</label><select id="fDomain"><option value="">All</option><option value="sim">Simulation</option><option value="real">Real UR5</option></select></div>
+      <div class="f"><label>Method</label><select id="fMethod"><option value="">All</option><option value="base">Base</option><option value="ours">Ours</option><option value="ours_realperc">Ours (open-vocab perception)</option><option value="vls_full">VLS (full)</option><option value="vls_grad">VLS (grad-only)</option></select></div>
+      <div class="f"><label>Policy</label><select id="fPolicy"><option value="">All</option></select></div>
+      <div class="f"><label>Suite / experiment</label><select id="fSuite"><option value="">All</option></select></div>
+      <div class="f"><label>Shift</label><select id="fPert"><option value="">All</option></select></div>
+      <div class="f"><label>Outcome</label><select id="fOutcome"><option value="">All</option><option value="s">Success</option><option value="f">Failure</option></select></div>
+      <div class="count"><b id="exCount">0</b> of <span id="exTotal">0</span> rollouts</div>
+    </div>
+    <div class="tiles" id="exTiles"></div>
+    <div class="more"><button class="btn ghost" id="exMore" hidden>Show more</button></div>
+
+    <h3>Montages</h3>
+    <div class="grid-2">
+      <figure class="card mt0"><video src="assets/videos/method/ExperimentVolumeGrid.mp4" poster="assets/videos/method/ExperimentVolumeGrid.jpg" muted loop playsinline preload="none" class="lazyplay"></video><figcaption>All 16 cells of the positional sweep, guided.</figcaption></figure>
+      <figure class="card mt0"><video src="assets/videos/method/FailureGrid.mp4" poster="assets/videos/method/FailureGrid.jpg" muted loop playsinline preload="none" class="lazyplay"></video><figcaption>Unsteered failures in simulation and on hardware: why test-time steering is needed.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ APPENDIX ============================ -->
+<section class="block" id="appendix">
+  <div class="wrap">
+    <div class="eyebrow">Appendix</div>
+    <h2>Full appendix</h2>
+    <p class="lead">The complete appendix, which did not fit in the submission. Each subsection has a stable link (hover a heading). Values are those used for the reported experiments unless stated otherwise.</p>
+
+    <div class="appendix-layout">
+      <aside class="toc" id="toc">
+        <b>Contents</b>
+        <a href="#A-perception"><span>A.1</span>Perception pipeline</a>
+        <a href="#A-demo"><span>A.2</span>Demonstration analysis &amp; VLM prompting</a>
+        <a href="#A-segmentation"><span>A.3</span>Sub-trajectory segmentation</a>
+        <a href="#A-relations"><span>A.4</span>Relations &amp; per-relation weights</a>
+        <a href="#A-alignment"><span>A.5</span>Trajectory alignment</a>
+        <a href="#A-rollout"><span>A.6</span>Action roll-out (dynamics model)</a>
+        <a href="#A-injection"><span>A.7</span>Guidance injection &amp; line search</a>
+        <a href="#A-hyper"><span>A.8</span>Hyperparameters &amp; base policies</a>
+        <a href="#A-breakdown"><span>A.9</span>Full results breakdown</a>
+        <a href="#A-realperception"><span>A.10</span>Real open-vocabulary perception</a>
+        <a href="#A-realworld"><span>A.11</span>Real-world platform</a>
+        <a href="#A-realtiming"><span>A.12</span>Real-world perception timing</a>
+        <a href="#A-positional"><span>A.13</span>Positional OOD analysis</a>
+        <a href="#A-vls"><span>A.14</span>VLS reproduction</a>
+        <a href="#A-example"><span>A.15</span>Worked example: VLM transcript</a>
+        <a href="#A-refs"><span>·</span>References</a>
+      </aside>
+
+      <div class="appx-body">
+
+        <div class="appx-sec" id="A-perception">
+          <h3><span class="num">A.1</span>Perception pipeline<a class="anchor" href="#A-perception">#</a></h3>
+          <p>Object instance masks come from an open-vocabulary, grounded pipeline rather than a single segmentation model. For each task-relevant object named in the instruction, a VLM (Gemini 3 Flash [1]) proposes one grounded bounding box; SAM2 [2] converts each box into a precise mask; masks are size- and erosion-filtered before centroids and surface points are recovered by unprojecting the depth image and fusing the available camera views.</p>
+          <p>After the first frame, masks are propagated with the SAM2 video tracker so per-step perception is inexpensive; full VLM and SAM2 detection is rerun only when re-grounding is needed. The same pipeline runs on the demonstration frame and the live OOD frame, giving consistent, language-grounded labels across scenes.</p>
+        </div>
+
+        <div class="appx-sec" id="A-demo">
+          <h3><span class="num">A.2</span>Demonstration analysis and VLM prompting<a class="anchor" href="#A-demo">#</a></h3>
+          <p>Entity pairs, relation types and projections are selected by a separate reasoning VLM (GPT-5.4), queried in a single-turn prompt with the task description and two annotated images (segmentation overlay and STRAP sub-trajectory overlay). An optional iterative variant (up to three rounds, selecting pairs by alignment consistency across demonstrations) exists but is disabled in the reported runs. VLM outputs and live detections are recomputed per episode (caching disabled), so results reflect the full online pipeline. The complete prompt and response are in <a href="#A-example">A.15</a>.</p>
+          <figure class="card"><div class="figure-white"><img src="assets/img/offline_online_2.png" alt="Offline abstraction and online application of VLM-selected distance pairs" loading="lazy"></div>
+            <figcaption><b>Visual-geometric guidance via VLM-selected distance pairs.</b> <em>Offline</em> (a to c): the demonstration is segmented (Gemini 3 Flash + SAM2) and split into sub-trajectory phases (STRAP); the VLM selects each phase's entity pairs, projections and sub-goal constraints. <em>Online</em> (d, e): the live scene is matched to the demonstration, and the guidance steers the frozen policy so the selected projected distances track the reference.</figcaption></figure>
+        </div>
+
+        <div class="appx-sec" id="A-segmentation">
+          <h3><span class="num">A.3</span>Sub-trajectory segmentation<a class="anchor" href="#A-segmentation">#</a></h3>
+          <p>Following the velocity-based heuristic of STRAP [3], the demonstration is split at low end-effector speed: we threshold the end-effector speed (from the end-effector position trajectory) at <code>0.005</code> and enforce a minimum sub-trajectory length of <code>20</code> steps to avoid spurious fragmentation.</p>
+        </div>
+
+        <div class="appx-sec" id="A-relations">
+          <h3><span class="num">A.4</span>Object-relational relations and per-relation weights<a class="anchor" href="#A-relations">#</a></h3>
+          <p>Each relation specifies a <b>source</b> and a <b>distance type</b>. Sources: the end-effector, the left or right fingertip (forward kinematics from end-effector pose and gripper aperture), an object rigidly held by the gripper (at a body-frame offset from the end-effector), or, for orientation and gripper relations, the end-effector pose and gripper channel directly.</p>
+          <div class="tbl-wrap"><table class="t">
+            <thead><tr><th>Distance type</th><th style="text-align:left">Definition</th></tr></thead>
+            <tbody>
+              <tr><td><b>centroid</b></td><td style="text-align:left;white-space:normal">Euclidean distance between 3D centroids; optionally projected on an axis $\hat u$ (signed) or a plane with normal $\hat n$ (in-plane magnitude)</td></tr>
+              <tr><td><b>surface</b></td><td style="text-align:left;white-space:normal">Minimum distance from the source to a sub-sampled object point cloud; same optional projections</td></tr>
+              <tr><td><b>orientation</b></td><td style="text-align:left;white-space:normal">Signed cosine of a rotated body-frame vector $R\hat e$ with an axis, or its in-plane magnitude w.r.t. a plane</td></tr>
+              <tr><td><b>gripper</b></td><td style="text-align:left;white-space:normal">Metric aperture. The normalized action channel is mapped to finger separation so all relations are in metres</td></tr>
+            </tbody></table></div>
+          <p>The per-relation weight $w_n$ in $\mathcal{L}_{guide}$ combines the VLM-assigned importance of relation $n$ with a <b>relevance gate</b>: a relation ramps linearly from inactive to fully active as the end-effector distance to the relevant object decreases from a far threshold (<code>0.15 m</code>) to a near threshold (<code>0.05 m</code>), so a relation only steers once its object is being approached.</p>
+          <p>The reference trajectory $d^{*n}_{t'}$ comes from the retrieved demonstration. With several demonstrations, their DTW-aligned spread gives a per-relation, per-step standard deviation used for alignment and diagnostics (it does not reweight the loss in the reported configuration).</p>
+        </div>
+
+        <div class="appx-sec" id="A-alignment">
+          <h3><span class="num">A.5</span>Trajectory alignment<a class="anchor" href="#A-alignment">#</a></h3>
+          <p>Alignment runs online in the visual-geometric feature space. In the MIXED mode we use, a shared cursor $\bar t$ is first matched to the reference by minimizing the mean squared error over the relevant relations; then each relation is independently re-aligned within a window around that cursor:</p>
+          <div class="eqbox">$$t^*_n = \arg\min_{|t-\bar t|\le w} \left({d'}^{n} - d^{n}_t\right)^2,\qquad d^{*n}_{t'} = d^{n}_{t^*_n + t'}$$</div>
+          <div class="tbl-wrap"><table class="t">
+            <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Per-relation window half-width $w$</td><td>5 frames</td></tr>
+              <tr><td>Cursor direction</td><td>bidirectional (can move back to follow retries)</td></tr>
+              <tr><td>Max cursor advance per step</td><td>1.2 action chunks</td></tr>
+              <tr><td>Distance normalization</td><td>per sub-trajectory (matching on relative progress)</td></tr>
+              <tr><td>Temporal-pace term</td><td>disabled</td></tr>
+              <tr><td>Sub-trajectory switching</td><td>bidirectional, gated on sub-goal satisfaction</td></tr>
+              <tr><td>Switch persistence</td><td>10 steps</td></tr>
+              <tr><td>Alignment-lag softmax temperature / floor</td><td>5.0 / 0.05</td></tr>
+            </tbody></table></div>
+          <p>The softmax over each relation's alignment lag sets the per-relation temporal weighting that enters $w_n$.</p>
+        </div>
+
+        <div class="appx-sec" id="A-rollout">
+          <h3><span class="num">A.6</span>Action roll-out (dynamics model)<a class="anchor" href="#A-rollout">#</a></h3>
+          <p>In simulation, $\mathcal{F}$ is a kinematic integrator of the OSC velocity actions. From the current end-effector position $p_0$ and axis-angle orientation $r_0$ ($R_0 = \exp r_0$), it integrates the chunk's per-step linear and angular velocities $(v_k, \omega_k)$ with an Euler (cumulative-sum) scheme:</p>
+          <div class="eqbox">$$p_{t'} = p_0 + \sum_{k\le t'} v_k\,\Delta t,\qquad r_{t'} = r_0 + \sum_{k\le t'} \omega_k\,\Delta t,\qquad R_{t'} = \exp(r_{t'})$$</div>
+          <p>where $\Delta t$ is the per-step duration. The gripper channel is absolute and read directly, mapped to metric aperture as in A.4. Because $\mathcal{F}$ is differentiable, the guidance gradient flows through it back to the action chunk; any differentiable dynamics model can be substituted. On the real robot the policy predicts joint positions, so $\mathcal{F}$ is the analytic UR5 forward kinematics and the Cartesian gradient is mapped to joint space through the pseudo-inverse Jacobian, $\delta A_t = J(q_t)^{\dagger}\nabla_{e_t}\mathcal{L}_{guide}$.</p>
+        </div>
+
+        <div class="appx-sec" id="A-injection">
+          <h3><span class="num">A.7</span>Guidance injection and line search<a class="anchor" href="#A-injection">#</a></h3>
+          <div class="algo">
+            <div class="ah"><b>Algorithm 1.</b> Per-step golden-section line search for the guidance scale $\alpha^\star$</div>
+            <ol>
+              <li><b>Require:</b> chunk $A^{(k)}_t$, unit direction $\hat d$, loss $\mathcal{L}_{guide}$, bound $\alpha_{\max}$, iterations $n$</li>
+              <li>define $f(\alpha) \equiv \mathcal{L}_{guide}(A^{(k)}_t + \alpha\hat d)$, $\;\varphi \leftarrow (\sqrt5 + 1)/2$</li>
+              <li>$a \leftarrow 0,\; b \leftarrow \alpha_{\max}$</li>
+              <li><b>while</b> $f(2b) &lt; f(b)$ <b>do</b> <span class="cm">expand bracket (≤ 5 doublings)</span></li>
+              <li class="in1">$b \leftarrow 2b$</li>
+              <li><b>for</b> $n$ iterations <b>do</b> <span class="cm">golden-section narrowing</span></li>
+              <li class="in1">$u \leftarrow b - (b-a)/\varphi,\; w \leftarrow a + (b-a)/\varphi$</li>
+              <li class="in1"><b>if</b> $f(u) &lt; f(w)$ <b>then</b> $b \leftarrow w$ <b>else</b> $a \leftarrow u$</li>
+              <li>$\alpha \leftarrow (a+b)/2$</li>
+              <li><b>return</b> $\alpha$ <b>if</b> $f(\alpha) &lt; f(0)$ <b>else</b> $0$ <span class="cm">do-no-harm</span></li>
+            </ol>
+          </div>
+          <p>The guidance gradient is computed on the first action chunk only and evaluated at the policy's tentative next iterate $A^{(k)}_t + \Delta t\, v$ (subsequent chunks receive no correction). By default the gradient is $\ell_2$-normalized to a unit direction so the golden-section step sets the correction magnitude; with the raw gradient, the scale $c$ behaves as a classical gradient-descent step size. The search uses <code>20</code> narrowing iterations and at most five bracket doublings.</p>
+          <p>An optional multi-step variant decomposes the correction across relations or chunk timesteps: <em>sequential</em> (greedy coordinate descent over relations, line-searched against the total loss), <em>sum</em>/<em>weighted</em> (independent per-relation steps, optionally scaled by $w_n$), and <em>per-timestep</em>. These are disabled in the reported runs, which use a single shared descent direction.</p>
+        </div>
+
+        <div class="appx-sec" id="A-hyper">
+          <h3><span class="num">A.8</span>Hyperparameters and base policies<a class="anchor" href="#A-hyper">#</a></h3>
+          <div class="tbl-wrap"><table class="t">
+            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Global guidance scale $c$</td><td>1.0 (all benchmarks and policies)</td></tr>
+              <tr><td>Relevance thresholds (near, far)</td><td>(0.05, 0.15) m</td></tr>
+              <tr><td>Line-search bound $\alpha_{\max}$</td><td>rescaled per policy (velocity field vs. score)</td></tr>
+              <tr><td>Golden-section iterations / max doublings</td><td>20 / 5</td></tr>
+              <tr><td>Guidance recompute interval</td><td>every 5 env steps (policy replanning interval)</td></tr>
+              <tr><td>STRAP speed threshold / min length</td><td>0.005 / 20 steps</td></tr>
+              <tr><td>Retrieval encoders</td><td>DINOv2 <code>dinov2-base</code> (vision) [4], CLIP <code>clip-vit-base-patch16</code> (language) [5]</td></tr>
+              <tr><td>Retrieval weight $\beta$</td><td>fixed across experiments</td></tr>
+              <tr><td>$\pi_{0.5}$ [6]</td><td>OpenPI <code>pi05_libero_grounded</code>, 224×224 inputs</td></tr>
+              <tr><td>GR00T N1.7 [7]</td><td><code>GR00T-N1.7-LIBERO</code>, 256×256 inputs</td></tr>
+              <tr><td>LIBERO-Pro [8] trials</td><td>10 per task, over object, spatial, language and goal/task perturbations</td></tr>
+            </tbody></table></div>
+          <p>Both policies are kept frozen; only the test-time guidance is applied during denoising.</p>
+        </div>
+
+        <div class="appx-sec" id="A-breakdown">
+          <h3><span class="num">A.9</span>Full results breakdown<a class="anchor" href="#A-breakdown">#</a></h3>
+          <p>Per-perturbation-type success rates behind the task and positional summary, including the near-saturated object and language perturbations. The base policies already reach 75 to 95% there, so steering has little headroom and can slightly perturb an already-correct trajectory; the gains concentrate on task and positional shifts.</p>
+          <div class="tbl-wrap"><table class="t">
+            <thead><tr><th>Method</th><th>Task</th><th>Pos</th><th>Object</th><th>Lang.</th><th>Overall</th></tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="6">π0.5</td></tr>
+              <tr><td>No steering</td><td>26.3</td><td>26.3</td><td class="best">83.0</td><td class="best">92.3</td><td class="best">56.9</td></tr>
+              <tr><td>VLS (reproduced, full)</td><td>32.0</td><td>27.6</td><td>45.8</td><td>61.5</td><td>41.7</td></tr>
+              <tr><td>VLS (grad-only)</td><td>17.3</td><td>21.5</td><td>18.3</td><td>26.8</td><td>20.9</td></tr>
+              <tr class="ours"><td>Ours (GT labels)</td><td class="best">40.8</td><td class="best">34.3</td><td>65.8</td><td>75.0</td><td>53.9</td></tr>
+              <tr><td>Ours (Gemini 3 Flash)</td><td>24.8</td><td>24.5</td><td>47.5</td><td>55.3</td><td>38.0</td></tr>
+              <tr class="group"><td colspan="6">GR00T N1.7</td></tr>
+              <tr><td>No steering</td><td>19.3</td><td>0.5</td><td class="best">75.5</td><td class="best">90.5</td><td class="best">46.4</td></tr>
+              <tr class="ours"><td>Ours (GT labels)</td><td class="best">20.0</td><td class="best">3.5</td><td>60.8</td><td>75.8</td><td>40.0</td></tr>
+              <tr><td>Ours (Gemini 3 Flash)</td><td>14.5</td><td>3.5</td><td>44.0</td><td>57.0</td><td>29.8</td></tr>
+            </tbody></table></div>
+          <p class="tcap">Success rate (%) per perturbation type on LIBERO-Pro, averaged over the four suites. "GT labels" / "Gemini 3 Flash" denote the perception used by our method.</p>
+          <div class="grid-2">
+            <div>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>Method (π0.5)</th><th>Task</th><th>Pos</th><th>Average</th></tr></thead>
+                <tbody>
+                  <tr><td>No steering</td><td>26.3</td><td>26.3</td><td>26.3</td></tr>
+                  <tr><td>VLS (reproduced, full)*</td><td>32.0</td><td>27.6</td><td>29.8</td></tr>
+                  <tr><td>VLS (grad-only)*</td><td>17.3</td><td>21.5</td><td>19.4</td></tr>
+                  <tr class="ours"><td>Ours</td><td class="best">40.8</td><td class="best">34.3</td><td class="best">37.5</td></tr>
+                </tbody></table></div>
+              <p class="tcap">Main comparison (paper Table I). *Reproduced with the released VLS code, see A.14.</p>
+            </div>
+            <div>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>Variant (π0.5)</th><th>Task</th><th>Pos</th><th>Avg</th></tr></thead>
+                <tbody>
+                  <tr><td>No guidance</td><td>26.3</td><td>26.3</td><td>26.3</td></tr>
+                  <tr><td>+ gradient guidance (fixed step)</td><td>24.2</td><td>23.3</td><td>23.8</td></tr>
+                  <tr><td>+ line search</td><td>34.2</td><td class="best">35.8</td><td>35.0</td></tr>
+                  <tr class="ours"><td>+ error normalization (Ours)</td><td class="best">40.8</td><td>34.3</td><td class="best">37.5</td></tr>
+                </tbody></table></div>
+              <p class="tcap">Guidance-mechanism ablation, cumulative.</p>
+            </div>
+          </div>
+    <h4>Per-suite breakdown (interactive)</h4>
+    <p>Success rate per suite and perturbation. Click any cell to load its rollouts in the <a href="#simPairsTitle">base vs. ours viewer</a>.</p>
+    <div class="controls">
+      <label>Policy</label>
+      <div class="seg" id="rateSeg"></div>
+    </div>
+    <div class="tbl-wrap" style="padding:8px"><table class="heat" id="rateTable"><tbody><tr><td class="muted">Loading rates…</td></tr></tbody></table></div>
+    <p class="tcap" id="rateCap"></p>
+          <div id="rateFullWrap"></div>
+        </div>
+
+        <div class="appx-sec" id="A-realperception">
+          <h3><span class="num">A.10</span>Real open-vocabulary perception<a class="anchor" href="#A-realperception">#</a></h3>
+          <p>Under real open-vocabulary perception (grounded VLM detection followed by SAM2 masks, no simulator labels, unlike the ground-truth grounding used in the main results), $\pi_{0.5}$ + Ours reaches <b>24.8 / 24.5</b> on task / positional perturbations, well below the <b>40.8 / 34.3</b> obtained with ground-truth grounding. This gap quantifies how much current performance is bottlenecked by perception rather than by the steering itself. The grounding backbone matters: Gemini 3 Flash performs best (24.7 vs. 21.1 averaged over task and positional suites) and is used throughout.</p>
+          <div class="tbl-wrap"><table class="t">
+            <thead><tr><th>Suite</th><th>Pert.</th><th>Gemini Robotics-ER 1.6</th><th>Gemini 3 Flash</th></tr></thead>
+            <tbody>
+              <tr><td>Goal</td><td>Task</td><td>9.0</td><td class="best">11.0</td></tr>
+              <tr><td>Goal</td><td>Pos</td><td>23.0</td><td class="best">25.0</td></tr>
+              <tr><td>Spatial</td><td>Task</td><td>40.0</td><td class="best">49.0</td></tr>
+              <tr><td>Spatial</td><td>Pos</td><td class="best">33.0</td><td>32.0</td></tr>
+              <tr><td>libero_10</td><td>Task</td><td>5.0</td><td class="best">6.0</td></tr>
+              <tr><td>libero_10</td><td>Pos</td><td class="best">9.0</td><td>8.0</td></tr>
+              <tr><td>Object</td><td>Task</td><td>23.0</td><td class="best">33.0</td></tr>
+              <tr><td>Object</td><td>Pos</td><td>27.0</td><td class="best">33.0</td></tr>
+              <tr class="sum"><td colspan="2"><b>Avg (task + pos)</b></td><td>21.1</td><td class="best">24.7</td></tr>
+            </tbody></table></div>
+          <p class="tcap">Open-vocabulary grounding-backbone ablation for π0.5 + Ours (success rate %; "Pos" is the positional/swap perturbation).</p>
+        </div>
+
+        <div class="appx-sec" id="A-realworld">
+          <h3><span class="num">A.11</span>Real-world platform details<a class="anchor" href="#A-realworld">#</a></h3>
+          <p><b>Robot.</b> A UR5 6-DoF arm with a Robotiq 2F-140 parallel gripper (0 to 140 mm stroke). The policy predicts joint positions; the Cartesian guidance gradient is mapped to joint space through the pseudo-inverse Jacobian, and $\mathcal{F}$ is the analytic UR5 forward kinematics (A.6). The gripper aperture is mapped from the policy's normalized channel to metric finger separation as in A.4. Policy inference, VLM calls and the guidance loop run on one RTX 5090.</p>
+          <p><b>Cameras and calibration.</b> All object detection and 3D reconstruction for the guidance use a <em>single fixed external</em> Intel RealSense D435; the policy additionally observes a wrist view. Intrinsics come from the factory calibration. Extrinsics are obtained <em>markerlessly</em> with Kalib [9], which tracks a reference point on the robot with a visual foundation model and recovers the camera-to-robot transform with a PnP solve from forward kinematics; no fiducials, mesh models or training are required, and calibration takes seconds. This matters because the guidance consumes metric centroids and surface points unprojected from depth: calibration error biases every distance pair. With one view, the multi-view fusion of A.1 reduces to a single view, so centroids are recovered from the visible surface and self-occluded geometry is not observed.</p>
+          <p><b>Base policy and reference rollout.</b> $\pi_{0.5}$ finetuned on 28 demonstrations of <em>"Put all cables in the bag"</em>, kept frozen. The demonstration database holds a single successful rollout of that same policy in the nominal configuration.</p>
+        </div>
+
+        <div class="appx-sec" id="A-realtiming">
+          <h3><span class="num">A.12</span>Real-world perception timing<a class="anchor" href="#A-realtiming">#</a></h3>
+          <p>Simulation profiling assumes privileged object states. On hardware the guidance also pays for open-vocabulary perception, reported in two parts: a once-per-episode first-frame setup, and the per-replan cost inside the inference loop.</p>
+          <div class="grid-2">
+            <div>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>First-frame setup stage</th><th>Wall time</th></tr></thead>
+                <tbody>
+                  <tr><td>Retrieval (DINOv2 + CLIP embed and match)</td><td>0.43 ± 0.01 s</td></tr>
+                  <tr><td>Demo seed frame: object names (VLM)</td><td>2.1 ± 0.3 s</td></tr>
+                  <tr><td>Demo seed frame: box detection (VLM)</td><td>2.1 ± 0.4 s</td></tr>
+                  <tr><td>Demo seed frame: SAM2 masks</td><td>0.16 ± 0.14 s</td></tr>
+                  <tr><td>Pair and constraint selection (VLM)</td><td>9.4 ± 0.6 s</td></tr>
+                  <tr><td>Demo analysis total</td><td>14.9 ± 0.8 s</td></tr>
+                  <tr><td>Reference distance trajectory (57 frames)</td><td>3.2 ± 0.4 s</td></tr>
+                  <tr><td>Live-object inference (VLM)</td><td>3.0 ± 1.7 s</td></tr>
+                  <tr><td>Live seed-frame detection (boxes + SAM2)</td><td>2.6 ± 0.5 s</td></tr>
+                  <tr><td>Equivalence mapping (VLM)</td><td>3.1 ± 0.4 s</td></tr>
+                  <tr class="sum"><td><b>Total</b></td><td><b>29.5 ± 3.1 s</b></td></tr>
+                </tbody></table></div>
+              <p class="tcap">Mean ± sd over 6 runs on the same scene, fresh VLM cache each run. The six VLM round-trips sum to 20.6 ± 3.1 s (about 70% of the total is API latency). Process startup is separate: retrieval encoders 1.6 ± 0.6 s, perception clients 3.4 ± 0.4 s.</p>
+            </div>
+            <div>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>Inference-loop measurement</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr><td>Detection, once per episode (VLM boxes + SAM2)</td><td>2.6 ± 0.6 s</td></tr>
+                  <tr><td>Track call per replan (replay, 63 frames)</td><td>46 ± 4 ms</td></tr>
+                  <tr><td>Tracker step alone (replay)</td><td>37.5 ± 3.5 ms</td></tr>
+                  <tr><td>Tracker step alone (in the loop, 80 rollouts)</td><td>48 ± 14 ms</td></tr>
+                  <tr class="sum"><td><b>Perception block in the live loop (incl. back-projection)</b></td><td><b>113 ± 2 ms</b></td></tr>
+                </tbody></table></div>
+              <p class="tcap">Detect-then-track replayed over the primary view of six recorded guided rollouts at the 25-step replan cadence, using each rollout's own object names; every object was found on every frame. After the first detection, the loop pays only mask propagation and back-projection.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="appx-sec" id="A-positional">
+          <h3><span class="num">A.13</span>Positional OOD analysis<a class="anchor" href="#A-positional">#</a></h3>
+          <p><b>Training distribution.</b> The 28 training demonstrations yield 110 cable positions, one per gripper closure near the table, read from proprioception in the robot base frame (grasp points, hence a proxy for where the cable lay). They form a weakly correlated Gaussian ($\rho = -0.07$) centered in cell B2, with standard deviation 6.2 cm across columns and 5.6 cm across rows. Each experiment rollout's cable position, measured on its first frame with the perception pipeline, is expressed as a Mahalanobis distance from that Gaussian. The two sets of positions come through different channels (proprioception at closure vs. first-frame perception), so distances carry the offset between them; a systematic offset would shift all distances equally without changing cell ordering or zone assignment.</p>
+          <p><b>Statistics.</b> Success is analyzed against distance in two ways: binned into three zones, with 95% Wilson intervals and a two-sided Fisher exact test per zone; and as a per-method logistic regression, whose 50% crossing we report. Intervals on the difference between methods use Newcombe's hybrid score method: <b>[+7, +54]</b> points near-OOD, <b>[+2, +41]</b> pooled OOD and <b>[−1, +37]</b> over the full sweep. Both procedures treat the 48 rollouts per method as independent, which they are not (each placement is run by both methods; the three trials of a cell share a nominal placement). Fisher's test is conservative under the first, which is why pooled OOD gives $p = 0.051$ while the interval on the difference excludes zero. We report these as descriptive summaries.</p>
+          <p><b>Zones.</b> Each rollout is assigned from its own measured position, not its nominal cell. Both boundaries lie in gaps: no rollout falls between 1.4 and 2.3σ or between 4.1 and 5.3σ, so any cut inside a gap yields the same assignment.</p>
+          <div class="grid-2">
+            <div>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>Zone</th><th>Distance</th><th>Cells</th><th>Rollouts / method</th></tr></thead>
+                <tbody>
+                  <tr><td>In-distribution</td><td>&lt; 2.0σ</td><td>B1, B2, B3</td><td>9</td></tr>
+                  <tr><td>Near-OOD</td><td>2.0 to 4.5σ</td><td>A1 to A4, B4, C1 to C4</td><td>27</td></tr>
+                  <tr><td>Far-OOD</td><td>&gt; 4.5σ</td><td>D1 to D4</td><td>12</td></tr>
+                </tbody></table></div>
+              <p class="tcap">Zone definition by Mahalanobis distance of the measured cable position.</p>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>Logistic fit</th><th>Base</th><th>Ours</th></tr></thead>
+                <tbody>
+                  <tr><td>50% crossing</td><td>2.8σ</td><td class="best">3.4σ</td></tr>
+                  <tr><td>Slope (logit per σ)</td><td>3.9</td><td class="best">1.7</td></tr>
+                </tbody></table></div>
+              <p class="tcap">Both fits are constrained almost entirely by near-OOD trials (the other zones saturate for both methods); neither is supported beyond 4.5σ.</p>
+            </div>
+            <div>
+              <div class="tbl-wrap"><table class="t">
+                <thead><tr><th>Cell</th><th>z cols</th><th>z rows</th><th>Mahalanobis</th><th>Zone</th></tr></thead>
+                <tbody>
+                  <tr><td>B2</td><td>−0.13</td><td>−0.26</td><td>0.30</td><td>in</td></tr>
+                  <tr><td>B3</td><td>1.09</td><td>−0.26</td><td>1.10</td><td>in</td></tr>
+                  <tr><td>B1</td><td>−1.35</td><td>−0.26</td><td>1.39</td><td>in</td></tr>
+                  <tr><td>B4</td><td>2.30</td><td>−0.26</td><td>2.30</td><td>near</td></tr>
+                  <tr><td>C2</td><td>−0.13</td><td>2.44</td><td>2.44</td><td>near</td></tr>
+                  <tr><td>C1</td><td>−1.35</td><td>2.44</td><td>2.71</td><td>near</td></tr>
+                  <tr><td>C3</td><td>1.09</td><td>2.44</td><td>2.74</td><td>near</td></tr>
+                  <tr><td>A2</td><td>−0.13</td><td>−2.95</td><td>2.97</td><td>near</td></tr>
+                  <tr><td>A3</td><td>1.09</td><td>−2.95</td><td>3.08</td><td>near</td></tr>
+                  <tr><td>A1</td><td>−1.35</td><td>−2.95</td><td>3.33</td><td>near</td></tr>
+                  <tr><td>C4</td><td>2.30</td><td>2.44</td><td>3.47</td><td>near</td></tr>
+                  <tr><td>A4</td><td>2.30</td><td>−2.95</td><td>3.62</td><td>near</td></tr>
+                  <tr><td>D1 to D4</td><td>−1.35 to 2.30</td><td>5.13</td><td>5.1 to 5.8</td><td>far</td></tr>
+                </tbody></table></div>
+              <p class="tcap">Cell centers in the training distribution's standardized coordinates, sorted by distance. The distance uses the full (weakly correlated) covariance, so it is not the Euclidean norm of the two $z$ columns. For reference only; zones use each rollout's measured position.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="appx-sec" id="A-vls">
+          <h3><span class="num">A.14</span>VLS reproduction<a class="anchor" href="#A-vls">#</a></h3>
+          <p>The VLS paper [10] reports 38.5 / 35.1 (36.8 average) on task / positional perturbations; our reproduced full run reaches <b>32.0 / 27.6</b>. The configuration matches the paper's hyperparameters (batch 20, 50 denoising steps, 200 episodes per suite, guidance scale, resampling and diversity settings) and model families (GPT-5.1 guidance, Gemini 3 Flash grounding). The residual gap is attributable to (i) a different, re-exported base checkpoint (<code>pi05_libero_finetuned_v044</code>); (ii) routing all VLM calls through OpenRouter rather than the native APIs; and (iii) single-run stochasticity (guidance code sampled at temperature 1.0, live stage decisions, unpinned seeds) together with provider model drift since the paper's runs.</p>
+          <p>The <b>grad-only</b> VLS row runs the public repository defaults, which set <code>sample_batch_size = 1</code>. With a single particle, Feynman-Kac resampling and RBF diversity initialization are both disabled, so the method reduces to pure gradient steering (the paper's "w/o FKD, w/o RBF" ablation) with 10 denoising steps. Sharing the same grounding and a comparable compute budget, this row isolates the gradient-steering signal and is the appropriate comparison for our single-chain gradient guidance.</p>
+        </div>
+
+        <div class="appx-sec" id="A-example">
+          <h3><span class="num">A.15</span>Worked example: offline demonstration analysis<a class="anchor" href="#A-example">#</a></h3>
+          <p>A complete offline demonstration-analysis query, end to end, for the task <em>"pick up the alphabet soup and place it in the basket"</em>. The reasoning VLM receives the system prompt, then the user message (task, object list, STRAP split) with the three annotated images. It returns entity pairs, projections and per-sub-trajectory sub-goal constraints, which the pipeline compiles into the relations used for steering. Messages are reproduced verbatim.</p>
+          <details class="prompt" data-src="assets/data/prompts/example_system.txt"><summary><span class="role">system</span>System message<span class="sz"></span></summary><pre>Loading…</pre></details>
+          <details class="prompt" data-src="assets/data/prompts/example_user.txt" open><summary><span class="role">user</span>User message<span class="sz"></span></summary><pre>Loading…</pre></details>
+          <div class="grid-3" style="margin:14px 0">
+            <figure class="card mt0"><img src="assets/img/example_rgb.png" alt="Original RGB scene" loading="lazy" style="width:100%;image-rendering:auto"><figcaption>(a) Original RGB scene.</figcaption></figure>
+            <figure class="card mt0"><img src="assets/img/example_seg.png" alt="Segmentation overlay with instance IDs" loading="lazy" style="width:100%"><figcaption>(b) Segmentation overlay with numeric instance IDs.</figcaption></figure>
+            <figure class="card mt0"><img src="assets/img/example_subtraj.png" alt="STRAP sub-trajectory overlay" loading="lazy" style="width:100%"><figcaption>(c) STRAP sub-trajectory overlay (ST0 approach, ST1 transport).</figcaption></figure>
+          </div>
+          <details class="prompt" data-src="assets/data/prompts/example_assistant.txt"><summary><span class="role">assistant</span>Assistant response (JSON)<span class="sz"></span></summary><pre>Loading…</pre></details>
+        </div>
+
+        <div class="appx-sec" id="A-refs">
+          <h3><span class="num">·</span>References<a class="anchor" href="#A-refs">#</a></h3>
+          <ol class="refs">
+            <li>Gemini Team, Google. Gemini: A Family of Highly Capable Multimodal Models. arXiv:2312.11805, 2023.</li>
+            <li>N. Ravi et al. SAM 2: Segment Anything in Images and Videos. arXiv:2408.00714, 2024.</li>
+            <li>M. Memmel et al. STRAP: Robot Sub-Trajectory Retrieval for Augmented Policy Learning. arXiv:2412.15182, 2024.</li>
+            <li>M. Oquab et al. DINOv2: Learning Robust Visual Features without Supervision. arXiv:2304.07193, 2023.</li>
+            <li>A. Radford et al. Learning Transferable Visual Models From Natural Language Supervision. ICML, 2021.</li>
+            <li>Physical Intelligence et al. π0.5: A Vision-Language-Action Model with Open-World Generalization. arXiv:2504.16054, 2025.</li>
+            <li>J. Bjorck et al. GR00T N1: An Open Foundation Model for Generalist Humanoid Robots. arXiv:2503.14734, 2025.</li>
+            <li>X. Zhou et al. LIBERO-PRO: Towards Robust and Fair Evaluation of Vision-Language-Action Models Beyond Memorization. arXiv:2510.03827, 2025.</li>
+            <li>T. Tang et al. Kalib: Easy Hand-Eye Calibration with Reference Point Tracking. IROS, 2025.</li>
+            <li>S. Liu et al. VLS: Steering Pretrained Robot Policies via Vision-Language Models. arXiv:2602.03973, 2026.</li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Anonymous submission under double-blind review. Code and author information will be released after the review process.</div>
+</footer>
+
+<!-- lightbox -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Rollout viewer">
+  <div class="box">
+    <video id="lbVideo" controls autoplay loop playsinline muted></video>
+    <div class="info">
+      <div class="kv" id="lbInfo"></div>
+      <div style="display:flex;gap:6px">
+        <button class="nv" id="lbPrev" aria-label="Previous">←</button>
+        <button class="nv" id="lbNext" aria-label="Next">→</button>
+        <button class="x" id="lbClose">Close ✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+{
+  "subtrajectories": [
+    {
+      "subtraj_idx": 0,
+      "reasoning": "ST0 is the approach-and-grasp phase for the alphabet soup can. The most informative signals are the distances from each gripper finger to the can, the lateral alignment of the gripper with the can, and the gripper orientation for a top-down grasp.",
+      "pairs": [
+        {
+          "from_entity": "gripper_l",
+          "to_entity": 1,
+          "label": "finger_l_to_alphabet_soup",
+          "distance_type": "surface",
+          "axis": null,
+          "plane": null,
+          "ee_vector": null
+        },
+        {
+          "from_entity": "gripper_r",
+          "to_entity": 1,
+          "label": "finger_r_to_alphabet_soup",
+          "distance_type": "surface",
+          "axis": null,
+          "plane": null,
+          "ee_vector": null
+        },
+        {
+          "from_entity": "gripper_l",
+          "to_entity": 1,
+          "label": "finger_l_to_alphabet_soup_xy",
+          "distance_type": "centroid",
+          "axis": null,
+          "plane": [
+            0,
+            0,
+            1
+          ],
+          "ee_vector": null
+        },
+        {
+          "from_entity": "gripper_l",
+          "to_entity": 1,
+          "label": "finger_l_to_alphabet_soup_z",
+          "distance_type": "centroid",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "plane": null,
+          "ee_vector": null
+        },
+        {
+          "from_entity": "ee",
+          "to_entity": "ee",
+          "label": "gripper_down_alignment",
+          "distance_type": "orientation",
+          "axis": [
+            0,
+            0,
+            -1
+          ],
+          "plane": null,
+          "ee_vector": null
+        }
+      ],
+      "sub_goal_constraints": [
+        {
+          "label": "fingers_near_alphabet_soup_sg",
+          "description": "Both finger tips must be within 8 cm of the alphabet soup centroid at the end of the grasp approach.",
+          "expression": "lambda ee, keypoints, ee_R: np.maximum(np.linalg.norm(keypoints['gripper_l'] - keypoints[1]), np.linalg.norm(keypoints['gripper_r'] - keypoints[1])) - 0.08",
+          "reasoning": "This ensures the gripper has reached grasping proximity to the can before transitioning to transport."
+        },
+        {
+          "label": "gripper_pointing_down_sg",
+          "description": "The gripper approach direction must be within about 30 degrees of straight down at the end of ST0.",
+          "expression": "lambda ee, keypoints, ee_R: 0.85 - np.dot(ee_R[:, 2], np.array([0.0, 0.0, -1.0]))",
+          "reasoning": "A downward-facing gripper is the appropriate orientation for securely grasping the upright can from above."
+        }
+      ]
+    },
+    {
+      "subtraj_idx": 1,
+      "reasoning": "ST1 transports the grasped alphabet soup to the basket and lowers it into the basket region. The key signals are the can-to-basket lateral alignment, overall proximity to the basket, vertical relation to the basket, and maintaining a closed grasp during transport.",
+      "pairs": [
+        {
+          "from_entity": 1,
+          "to_entity": 2,
+          "label": "alphabet_soup_to_basket_xy",
+          "distance_type": "centroid",
+          "axis": null,
+          "plane": [
+            0,
+            0,
+            1
+          ],
+          "ee_vector": null
+        },
+        {
+          "from_entity": 1,
+          "to_entity": 2,
+          "label": "alphabet_soup_to_basket",
+          "distance_type": "centroid",
+          "axis": null,
+          "plane": null,
+          "ee_vector": null
+        },
+        {
+          "from_entity": 1,
+          "to_entity": 2,
+          "label": "alphabet_soup_to_basket_z",
+          "distance_type": "centroid",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "plane": null,
+          "ee_vector": null
+        },
+        {
+          "from_entity": "gripper_l",
+          "to_entity": "gripper_r",
+          "label": "gripper_aperture",
+          "distance_type": "gripper_aperture",
+          "axis": null,
+          "plane": null,
+          "ee_vector": null
+        }
+      ],
+      "sub_goal_constraints": [
+        {
+          "label": "alphabet_soup_aligned_with_basket_sg",
+          "description": "The alphabet soup centroid must be horizontally within 10 cm of the basket centroid at the end of placement.",
+          "expression": "lambda ee, keypoints, ee_R: np.linalg.norm((keypoints[1] - keypoints[2])[:2]) - 0.10",
+          "reasoning": "This ensures the can is positioned over the basket opening rather than beside it."
+        },
+        {
+          "label": "alphabet_soup_lowered_to_basket_sg",
+          "description": "The alphabet soup centroid must be no more than 12 cm above the basket centroid at the end of placement.",
+          "expression": "lambda ee, keypoints, ee_R: (keypoints[1][2] - keypoints[2][2]) - 0.12",
+          "reasoning": "This confirms the can has been lowered into the basket region instead of remaining high above it."
+        }
+      ]
+    }
+  ]
+}

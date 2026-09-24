@@ -1,0 +1,14 @@
+Task: pick up the alphabet soup and place it in the basket
+
+Available objects (id: name):
+  1: alphabet_soup_1
+  2: basket_1
+  3: salad_dressing_1
+  4: cream_cheese_1
+  5: milk_1
+  6: tomato_sauce_1
+  7: butter_1
+
+Number of sub-trajectories: 2
+  ST0: timesteps 0–61
+  ST1: timesteps 62–163
