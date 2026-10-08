@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-perception"
+version = "0.1.0"
+description = "Open-vocabulary multi-object segmentation and tracking with SAM3 + pluggable disambiguators"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "transformers>=4.50",
+    "Pillow>=10.0",
+    "h5py>=3.9",
+    "loguru>=0.7",
+]
+
+[project.optional-dependencies]
+vlm = ["openai>=1.40"]
+# Gemini box-proposal detector (stages/detect_gemini.py + models/gemini.py).
+gemini = ["google-genai>=0.6.0"]
+# CoTracker is loaded via `torch.hub.load("facebookresearch/co-tracker", ...)`
+# at runtime; only its transitive Python deps are pinned here.
+cotracker = ["einops>=0.6", "tqdm>=4.60"]
+examples = ["imageio[ffmpeg]>=2.30"]
+dev = ["pytest>=7.4", "pytest-mock>=3.12", "imageio[ffmpeg]>=2.30"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: integration tests that need real models / GPU",
+]

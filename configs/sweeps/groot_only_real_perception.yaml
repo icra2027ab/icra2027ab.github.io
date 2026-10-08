@@ -1,0 +1,51 @@
+# GR00T ONLY — guided eval under REAL perception. Companion to
+# pi05_only_real_perception.yaml; runs the GR00T half of the
+# pi05_guided_real_perception matrix. MUST be launched from the MAIN repo
+# (the main checkout), whose groot.py has the msgpack_numpy
+# wire codec (commit 788d219). The worktree branch lacks that fix and would
+# fail every cell with "Video key 'image' must be a numpy array. Got dict".
+#
+# Output paths are pi05_guided_real_perception/groot/<suite>, matching the
+# existing groot summaries, so --output.skip-completed reuses finished cells
+# and only runs the missing/failed ones.
+#
+# GR00T specifics (mirror groot_guided.yaml):
+#   * --camera.resize-size 256: GR00T LIBERO checkpoints expect native 256x256.
+#   * No --policy.model-path: evaluate.py auto-defaults per suite to
+#     checkpoints/GR00T-N1.7-LIBERO/<suite>.
+#
+# Usage (from main repo):
+#   python scripts/perturbation_sweep.py --config configs/sweeps/groot_only_real_perception.yaml --gpus 0,1,2,3
+
+output_run: pi05_guided_real_perception
+
+base_args:
+  - --iter.num-trials-per-task
+  - "10"
+  - --perception.mode
+  - REAL_PERCEPTION
+  - --perception.detector-backend
+  - openrouter
+  - --perception.detector-model
+  - google/gemini-3-flash-preview
+
+task_suites: [libero_goal, libero_spatial, libero_object, libero_10]
+perturbations: [swap, task, object, language]
+
+matrix:
+  relevance:
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.05"
+      - --guidance.relevance-far-threshold
+      - "0.15"
+
+  # GR00T only.
+  policy:
+    groot:
+      - --camera.resize-size
+      - "256"
+      - policy:groot
+
+cell_run_template: "{output_run}/{policy}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

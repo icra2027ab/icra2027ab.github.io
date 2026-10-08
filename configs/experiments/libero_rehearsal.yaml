@@ -1,0 +1,47 @@
+# Hardware-free rehearsal of the collection workflow.
+#
+# Same code path as the real experiment — same GUI, same overlay, same
+# store, same report — against a LIBERO tabletop and the in-process dummy
+# policy. Use it to check a grid's geometry, the hotkeys, and the report
+# before going anywhere near the arm.
+#
+#   MUJOCO_GL=egl python scripts/experiments/collect_experiment.py \
+#       --experiment.experiment-config configs/experiments/libero_rehearsal.yaml \
+#       --experiment.experiment-name rehearsal \
+#       --guidance.debug --guidance.fake-policy circular \
+#       --retrieval.no-enable --demo-analysis.no-enable \
+#       --viz.no-enable \
+#     env:libero --env.task-suite-name libero_goal \
+#     policy:openpi
+#
+# The grid below is placed on the LIBERO tabletop (world z ~= 0.90, the
+# robot base sits at z = 0.912), so it lands under the bowl and plate in
+# libero_goal task 0.
+
+name: libero_rehearsal
+task: ""          # empty: use whatever instruction the suite publishes
+
+repeats: 1
+order: systematic
+grouping: condition
+seed: 0
+
+max_steps: 60     # short: this is a workflow check, not an evaluation
+timeout_s: 45
+
+view_scale: 3.0   # LIBERO renders 256x256; upscale for a real monitor
+
+factors:
+  - kind: grid_position
+    name: cable_position
+    grid:
+      name: cable
+      origin: [-0.30, -0.25, 0.90]
+      u_axis: [0.0, 1.0, 0.0]
+      v_axis: [1.0, 0.0, 0.0]
+      cell_size_u: 0.125
+      cell_size_v: 0.15
+      rows: 3
+      cols: 4
+      marker_height: 0.03
+      up_hint: [0.0, 0.0, 1.0]

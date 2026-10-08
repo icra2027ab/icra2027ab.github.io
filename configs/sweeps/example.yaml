@@ -1,0 +1,58 @@
+# Example overnight sweep configuration.
+#
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/overnight_example.yaml --gpus 0,1,2,3
+#
+# Each cell of the cartesian product over axes (perturbations × task_suites ×
+# every key in `matrix`) launches one `evaluate.py` invocation on one GPU.
+# The dispatcher keeps every GPU busy: as soon as one cell finishes, its GPU
+# picks up the next pending cell.
+
+# Required: top-level run name. Becomes --output.run for every cell unless
+# overridden by cell_run_template below.
+output_run: example_sweep
+
+# Forwarded extras applied to every cell (verbatim CLI tokens to evaluate.py).
+base_args:
+  - --iter.num-trials-per-task
+  - "3"
+
+# Convenience axes: shorthand for the existing CLI perturbation / suite flags.
+# Each value here becomes a cell along that axis. Both keys are optional —
+# omit either to let evaluate.py use its default.
+perturbations: [swap, task, object, language]
+task_suites: [libero_10, libero_object]
+
+# General matrix: any user-defined axis. Each axis maps value-name -> list of
+# CLI tokens to add to that cell's invocation. Policy backends live here
+# because each backend has its own --policy.* flag set.
+matrix:
+  policy:
+    openpi:
+      - policy:openpi
+    groot_libero10:
+      - --camera.resize-size
+      - "256"
+      - policy:groot
+      - --policy.model-path
+      - checkpoints/GR00T-N1.7-LIBERO/libero_10
+
+  guidance_factor:
+    high: [--guidance.factor, "1.0"]
+    low:  [--guidance.factor, "0.5"]
+
+# Naming templates. Available placeholders: every axis name, plus
+# {output_run} and {cell_index}. Defaults (used when the field is omitted):
+#   cell_run_template:      "{output_run}"
+#   cell_exp_name_template: "<value names joined by __>"
+# cell_run is passed as --output.run; cell_exp_name as --output.exp-name.
+# cell_exp_name must render to a single path component (no '/'); use
+# cell_run_template if you want sub-directories.
+cell_run_template: "{output_run}/{policy}"
+cell_exp_name_template: "{task_suite}__{perturbation}_g{guidance_factor}"
+
+# Drop specific combinations. Each entry is a partial {axis: value} map;
+# a cell is excluded if every listed pair matches.
+exclude:
+  - {policy: groot_libero10, task_suite: libero_object}
+  - {policy: groot_libero10, perturbation: language}

@@ -1,0 +1,63 @@
+# Guided eval under REAL perception (in-process open_perception, not GT masks).
+# The default REAL_PERCEPTION pipeline detects bounding boxes with Gemini 3 Flash
+# (via OpenRouter) and segments them with SAM2. Runs the pi05 (openpi) backend
+# first, then GR00T on the same real-perception config.
+#
+# Requirements:
+#   * OPENROUTER_API_KEY set in the environment — open_perception's box detector
+#     routes to https://openrouter.ai/api/v1 (OpenAI-wire). --perception.vlm-model
+#     is an OpenRouter slug, passed through unrewritten.
+#   * --perception.mode REAL_PERCEPTION uses the in-process OpenPerceptionClient,
+#     so no separate SAM-3D server is needed.
+#   * Gemini is used ONLY for perception here; demo analysis (pair/constraint
+#     selection) keeps its own default model (--demo-analysis.vlm-model).
+#
+# GR00T differences vs pi05 baked into the policy axis (mirrors groot_guided.yaml):
+#   * --camera.resize-size 256: GR00T's LIBERO checkpoints expect native 256x256
+#     frames, not pi05's 224. (Set per-policy so openpi keeps its 224 default.)
+#   * No --policy.model-path: evaluate.py auto-defaults it per task suite to
+#     checkpoints/GR00T-N1.7-LIBERO/<suite> (see Args.__post_init__).
+#
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/pi05_guided_real_perception.yaml --gpus 0,1,2,3
+
+output_run: pi05_guided_real_perception
+
+base_args:
+  - --iter.num-trials-per-task
+  - "10"
+  # Real perception: Gemini (OpenRouter) box detection + SAM2 segmentation,
+  # in-process client. Gemini box detector model (default already, set for
+  # explicitness; OPENROUTER_API_KEY selects the transport).
+  - --perception.mode
+  - REAL_PERCEPTION
+  - --perception.detector-backend
+  - openrouter
+  - --perception.detector-model
+  - google/gemini-3-flash-preview
+
+task_suites: [libero_goal, libero_spatial, libero_object, libero_10]
+perturbations: [swap, task, object, language]
+
+matrix:
+  relevance:
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.05"
+      - --guidance.relevance-far-threshold
+      - "0.15"
+
+  # Policy backend axis. openpi (pi05) first, then GR00T on the same
+  # real-perception + Gemini config. GR00T needs the native 256x256 resize;
+  # set it inside the groot value so openpi keeps the 224 default.
+  policy:
+    openpi:
+      - policy:openpi
+    groot:
+      - --camera.resize-size
+      - "256"
+      - policy:groot
+
+# Include {policy} so openpi and groot cells don't collide on output paths.
+cell_run_template: "{output_run}/{policy}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

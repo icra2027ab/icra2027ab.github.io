@@ -1,0 +1,33 @@
+# Franka Panda gripper geometry — single source of truth.
+#
+# Reference: panda_gripper.xml (MuJoCo model). The two prismatic fingers
+# slide symmetrically along the y axis of the EEF (grip-site) frame that
+# robosuite reports as ``robot0_eef``:
+#
+#   joint    q range       movement dir   rest offset from grip-site
+#  ------   ----------    -------------   --------------------------
+#   q1       [0,  0.04]    -y EEF          y = -0.0085  (left  finger)
+#   q2       [-0.04, 0]    +y EEF          y = +0.0085  (right finger)
+#
+# Both finger tips share a fixed +0.0114 m z-offset from the grip-site.
+
+robot: franka_panda
+gripper:
+  # Axis of the EEF frame the fingers slide along (left at -y, right at +y).
+  finger_axis: y
+  # Closed-state half-gap between grip-site center and each finger face (m).
+  finger_x_rest: 0.0085
+  # Fixed z-offset from grip-site to finger-tip body along EEF z-axis (m).
+  finger_z_from_grip: 0.0114
+  # Linear mapping from policy action channel (x_t[:, 6]) to metric q1 - q2 (m).
+  # Both JAX-side FK and numpy ref-chunk dynamics use this to keep units consistent.
+  action_open: 1.0
+  action_close: -1.0
+  metric_open: 0.08
+  metric_close: 0.0
+  # Linear map from the *observed* aperture (`gripper_qpos` after
+  # `GripperSpec.aperture_from_qpos`, i.e. q1 - q2) to the metric frame. The
+  # Panda reports joint positions in metres already, so this is the identity —
+  # it differs from the action mapping above, whose input is normalised.
+  qpos_open: 0.08
+  qpos_close: 0.0

@@ -1,0 +1,49 @@
+# Per-relation and alignment-scheme guidance ablations (Q3, deferred set).
+#
+# Two ablations in one sweep, all on the pi05 base with the DEFAULT (ground-
+# truth) perception, on the task and positional (swap) perturbations across the
+# four LIBERO-Pro suites. Every cell reuses the SAME VLM-selected distance pairs
+# as the main runs (shared cache) so only the guidance mechanism changes.
+#
+#   variant axis (6 values):
+#     full            all relation types, mixed alignment  (= "Ours", 3-trial ref)
+#     rel_no_pos      drop positional relations  (keep orientation + gripper)
+#     rel_no_orient   drop orientation relations (keep positional + gripper)
+#     rel_no_grip     drop gripper relations     (keep positional + orientation)
+#     align_unified   single shared alignment frame for all relations
+#     align_free      per-feature (free) alignment, no mixed switching
+#   (mixed alignment is the default and IS the "full" row, so it is not re-run.)
+#
+# Cells: 6 variants x 2 perturbations x 4 suites = 48 (30 episodes/cell).
+#
+# Usage:
+#   python scripts/perturbation_sweep.py \
+#       --config configs/sweeps/pi05_relation_alignment_ablation.yaml \
+#       --gpus 0,1,2 --yes \
+#       --demo-analysis.cache-pairs --demo-analysis.cache-live-objects
+
+output_run: pi05_relation_alignment_ablation
+
+base_args:
+  - --iter.num-trials-per-task
+  - "3"
+  - --demo-analysis.vlm-cache-dir
+  - data/progress_relevance_pi05/_shared_vlm_cache/
+
+task_suites: [libero_goal, libero_spatial, libero_object, libero_10]
+perturbations: [task, swap]
+
+matrix:
+  policy:
+    openpi: [policy:openpi]
+
+  variant:
+    full: []
+    rel_no_pos: [--guidance.no-relation-positional]
+    rel_no_orient: [--guidance.no-relation-orientation]
+    rel_no_grip: [--guidance.no-relation-gripper]
+    align_unified: [--alignment.mode, UNIFIED]
+    align_free: [--alignment.mode, PER_FEATURE]
+
+cell_run_template: "{output_run}/{task_suite}"
+cell_exp_name_template: "{variant}__{perturbation}"

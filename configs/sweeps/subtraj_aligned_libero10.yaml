@@ -1,0 +1,43 @@
+# Sweep the effect of alignment.subtraj_time_weight and guidance.aligned_t_offset
+# on the openpi policy, on LIBERO-10. Run separately under the `swap` and
+# `task` perturbations so the effect of the two knobs can be compared across
+# perturbation regimes. 3 trials per task.
+#
+# Total cells: 4 (subtraj_time_weight) × 3 (aligned_t_offset) × 2 (perturbations) = 24.
+#
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/subtraj_aligned_libero10.yaml --gpus 0,1,2,3
+
+output_run: subtraj_aligned_libero10_sweep
+
+base_args:
+  - --iter.num-trials-per-task
+  - "3"
+
+# Single-value task-suite axis (doesn't multiply); two-value perturbation
+# axis so each (stw, ato) combo is measured under both `swap` and `task`.
+task_suites: [libero_10]
+perturbations: [swap, task]
+
+matrix:
+  # alignment.subtraj_time_weight: temporal residual weight in the alignment
+  # cost (0 disables the temporal term).
+  subtraj_time_weight:
+    "0":   [--alignment.subtraj-time-weight, "0"]
+    "0.2": [--alignment.subtraj-time-weight, "0.2"]
+    "1":   [--alignment.subtraj-time-weight, "1"]
+    "3":   [--alignment.subtraj-time-weight, "3"]
+
+  # guidance.aligned_t_offset: lookahead offset on the aligned demo timestep
+  # used by the episode runner when applying guidance.
+  aligned_t_offset:
+    "0":  [--guidance.aligned-t-offset, "0"]
+    "5":  [--guidance.aligned-t-offset, "5"]
+    "10": [--guidance.aligned-t-offset, "10"]
+
+  # Pin the policy backend so it's explicit in the cell name.
+  policy:
+    openpi: [policy:openpi]
+
+cell_run_template: "{output_run}"
+cell_exp_name_template: "{perturbation}__stw{subtraj_time_weight}__ato{aligned_t_offset}"

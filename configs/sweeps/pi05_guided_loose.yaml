@@ -1,0 +1,26 @@
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/pi05_guided_loose.yaml --gpus 0,1,2,3
+
+output_run: pi05_guided_loose
+
+base_args:
+  - --iter.num-trials-per-task
+  - "10"
+
+task_suites: [libero_goal, libero_spatial, libero_object, libero_10]
+perturbations: [swap, task, object, language]
+
+matrix:
+  relevance:
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.10"
+      - --guidance.relevance-far-threshold
+      - "0.30"
+
+  # Pin the policy backend so it's explicit in the cell name.
+  policy:
+    openpi: [policy:openpi]
+
+cell_run_template: "{output_run}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

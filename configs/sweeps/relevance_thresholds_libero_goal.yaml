@@ -1,0 +1,51 @@
+# Ablate guidance HL-relevance thresholds (near/far) on LIBERO-Goal.
+#
+# Relevance ramps linearly from 0 at `near_threshold` to 1 at `far_threshold`
+# (m, EE-to-object distance), and scales the high-level guidance factor in
+# the episode runner. This sweep varies the (near, far) pair as a single
+# 4-value axis so we get 4 cells total — not a 4x4 cartesian product.
+#
+# Cells: 4 (relevance) x 1 (perturbation) x 1 (task_suite) = 4.
+# 1 trial per task.
+#
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/relevance_thresholds_libero_goal.yaml --gpus 0,1,2,3
+
+output_run: relevance_thresholds_libero_spatial_sweep
+
+base_args:
+  - --iter.num-trials-per-task
+  - "1"
+
+task_suites: [libero_spatial]
+perturbations: [swap, task, object, language]
+
+matrix:
+  relevance:
+    baseline:
+      - --guidance.relevance-near-threshold
+      - "0.05"
+      - --guidance.relevance-far-threshold
+      - "0.15"
+    tight:
+      - --guidance.relevance-near-threshold
+      - "0.0"
+      - --guidance.relevance-far-threshold
+      - "0.10"
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.10"
+      - --guidance.relevance-far-threshold
+      - "0.30"
+    "off":
+      - --guidance.relevance-near-threshold
+      - "0.0"
+      - --guidance.relevance-far-threshold
+      - "0.0"
+
+  # Pin the policy backend so it's explicit in the cell name.
+  policy:
+    openpi: [policy:openpi]
+
+cell_run_template: "{output_run}"
+cell_exp_name_template: "{perturbation}__rel_{relevance}"

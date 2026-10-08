@@ -1,0 +1,9 @@
+# LIBERO benchmark path config.
+# Loaded by third_party/LIBERO-PRO/libero/libero/__init__.py via
+# get_libero_path(); LIBERO_CONFIG_PATH must point at this directory.
+# ${LIBERO_PRO_PATH} is expanded by the loader at read time.
+assets: ${LIBERO_PRO_PATH}/libero/libero/assets
+bddl_files: ${LIBERO_PRO_PATH}/libero/libero/bddl_files
+benchmark_root: ${LIBERO_PRO_PATH}/libero/libero
+datasets: ${LIBERO_PRO_PATH}/../../datasets
+init_states: ${LIBERO_PRO_PATH}/libero/libero/init_files

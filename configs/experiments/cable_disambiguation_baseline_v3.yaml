@@ -1,0 +1,34 @@
+name: object_disambiguation
+task: Put the {target_object} in the bag.
+repeats: 1
+order: systematic
+grouping: condition
+seed: 0
+max_steps: 500
+timeout_s: 120.0
+camera: null
+view_scale: 2.0
+notes: ''
+factors:
+- kind: object_layout
+  name: object_layout
+  region:
+    name: objects
+    origin: [-0.15, 0.0, 0.0]
+    u_axis: [0.0, -1.0, 0.0]
+    v_axis: [-1.0, 0.0, 0.0]
+    cell_size_u: 0.3
+    cell_size_v: 0.3
+    rows: 1
+    cols: 1
+    marker_height: 0.015
+    up_hint: [0.0, 0.0, 1.0]
+  objects:
+  - {id: cable, label: cable, prompt_name: cable}
+  - {id: banana, label: banana, prompt_name: banana}
+  - {id: spoon, label: spoon, prompt_name: spoon}
+  layouts: 8
+  min_separation: 0.1
+  margin: 0.06
+  seed: 0
+- {kind: target_object, name: target_object, layout: object_layout}

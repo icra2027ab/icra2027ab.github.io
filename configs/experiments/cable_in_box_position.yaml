@@ -1,0 +1,113 @@
+# Experiment 1 — positional distribution shift on "put the cable in the box".
+#
+# One factor: where the cable starts. Orientation and appearance are held
+# fixed (place the cable the same way up every time), so the only thing
+# varying across the 36 rollouts is position. Those axes get their own
+# experiments later — see the commented stanzas at the bottom, which are
+# complete and only need uncommenting.
+#
+# Run the same file twice, once per policy setting, so the two arms sweep
+# an identical plan:
+#
+#   ... --experiment.experiment-name cable_position_baseline \
+#       --experiment.policy-setting baseline --no-guide
+#   ... --experiment.experiment-name cable_position_guided \
+#       --experiment.policy-setting guided --perception.mode REAL_PERCEPTION
+#
+# The geometry below is a PLACEHOLDER. Measure your own cell and check it
+# with --experiment.calibrate before collecting anything; the numbers are
+# in the UR5e controller's `base` frame, in metres, and a wrong origin --
+# or the right one written in `base_link` -- puts the whole grid off the
+# table. See the comment on `origin:` below.
+
+name: cable_in_box_position
+task: "Put all cables in the bag."
+
+# 12 cells x 3 repeats = 36 rollouts. At ~90 s each that is roughly an
+# hour of collection per policy setting, which is about as long as an
+# operator stages reliably in one sitting. Resume picks up the rest.
+repeats: 1
+order: systematic
+grouping: condition
+seed: 0
+
+max_steps: 1250
+timeout_s: 120
+
+view_scale: 2.0
+
+factors:
+  - kind: grid_position
+    name: cable_position
+    # What `scripts/experiments/measure_positions.py` asks the perception
+    # pipeline to find in each recording, to measure where the cable really
+    # was. Defaults to the noun the factor is named after ("cable").
+    object: cable
+    grid:
+      name: cable
+      # Outer corner of cell A1, in the controller's `base` frame — the one
+      # RTDE reports poses in and the one the env server publishes extrinsics
+      # in, NOT the ROS/URDF `base_link` that hand-eye tools produce. The two
+      # sit 180 degrees apart about z, so a grid written in the wrong one is
+      # mirrored through the robot and lands behind it, off camera. On this
+      # cell the arm works at negative x: the demo in
+      # data/ur5_demo_depth/.../episode_000 spans x -0.49..-0.36,
+      # y -0.32..-0.04.
+      #
+      # These numbers put a 30 x 40 cm grid over that patch, with cell
+      # centres spanning x -0.60..-0.30 and y -0.20..0.00. They are a
+      # STARTING POINT, not a measurement of your cell: check them with
+      # --calibrate before collecting anything.
+      origin: [-0.25, 0.05, 0.0]
+      # u runs along the columns (1, 2, 3), v along the rows (A, B, C, D).
+      # Negate u_axis if the overlay numbers the columns the opposite way
+      # to what the operator sees from where they stand.
+      u_axis: [0.0, -1.0, 0.0]
+      v_axis: [-1.0, 0.0, 0.0]
+      cell_size_u: 0.10
+      cell_size_v: 0.10
+      rows: 4
+      cols: 3
+      # Half the coiled cable's height, so the crosshair sits where its
+      # centroid will be rather than on the tabletop underneath it.
+      marker_height: 0.015
+      # Which way is "off the table" — orients the marker lift.
+      up_hint: [0.0, 0.0, 1.0]
+    # Optional: restrict the sweep to reachable cells without renumbering
+    # the rest, e.g.
+    # cells: [A1, A2, A3, A4, B1, B2, B3, B4]
+
+# Target disambiguation — several named objects at once and a prompt that
+# names one of them — is its own file: configs/experiments/object_disambiguation.yaml
+#
+# --- Later experiments: uncomment a stanza to add that axis ----------
+#
+# Every added factor multiplies the rollout count, so add one at a time
+# and reconsider `repeats`. Give each its own experiment name — a changed
+# factor list is a different plan, and the store refuses to mix them.
+#
+#  - kind: orientation
+#    name: cable_orientation
+#    anchor: cable_position     # draw the arrow in the position factor's cell
+#    angles_deg: [0, 45, 90, 135]
+#
+#  - kind: appearance
+#    name: cable_appearance
+#    variants: [black_usb, white_hdmi, coiled_grey]
+#    descriptions:
+#      black_usb: "black USB cable"
+#      white_hdmi: "white HDMI cable"
+#      coiled_grey: "grey coiled cable"
+#
+#  - kind: grid_position
+#    name: box_position
+#    grid:
+#      name: box
+#      origin: [-0.30, -0.15, 0.015]
+#      u_axis: [0.0, -1.0, 0.0]
+#      v_axis: [-1.0, 0.0, 0.0]
+#      cell_size_u: 0.12
+#      cell_size_v: 0.12
+#      rows: 2
+#      cols: 2
+#      marker_height: 0.05

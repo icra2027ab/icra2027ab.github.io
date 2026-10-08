@@ -1,0 +1,122 @@
+# Experiment 4 — appearance shift on "place the pen in blue cup on paper".
+#
+# One factor that matters: WHICH pen is being fetched. The checkpoint was
+# trained on one pen; here it is asked to fetch several pens of the same
+# type — different colour, thickness, length, cap or no cap — a few rollouts
+# each, so the success rate per pen says how far the policy generalises past
+# the object it was shown. The prompt does not change: it is the phrase the
+# checkpoint was trained on, and since it never describes the pen it stays
+# true whatever is actually on the table.
+#
+# The operator swaps the pen by hand between conditions (the badge on the live
+# view says which one to stage). The pen, the blue cup and the sheet of paper
+# the cup stands on all go on fixed staging marks, so the only thing varying
+# across rollouts is the pen itself — position gets its own experiment, not
+# this one.
+#
+# Run the same file twice, once per policy setting, so both arms sweep an
+# identical plan:
+#
+#   scripts/experiments/run_pen_appearance_experiment.sh --baseline
+#   scripts/experiments/run_pen_appearance_experiment.sh --guided
+#
+# The geometry below is a PLACEHOLDER. Measure your own cell and check it with
+# --calibrate before collecting anything; the numbers are in the UR5e
+# controller's `base` frame, in metres (see the `origin:` comment in
+# cable_in_box_position.yaml — the wrong frame mirrors the marks off the table).
+
+name: pen_appearance
+# Sent verbatim on every rollout (no placeholder). This IS the phrase the demos
+# were recorded with, so only the pen is out of distribution — unlike the
+# pouring experiment, the prompt names no property of the pen, so there is
+# nothing to reword when a different pen is on the mark.
+task: "Place the pen in blue cup on paper."
+
+# 3 pens x 5 repeats = 15 rollouts, ~20 minutes at 60-80 s each. Repeats are
+# grouped per pen (`grouping: condition`), so each pen is staged once and
+# left there for its five rollouts — the swap is the slow part.
+repeats: 5
+order: systematic
+grouping: condition
+seed: 0
+
+# The demos run 800-1250 steps (about 20 s at 50 Hz, mean 970); the cap leaves
+# room for a hesitant policy without letting a stuck one eat the afternoon.
+max_steps: 2000
+timeout_s: 120
+
+view_scale: 2.0
+
+factors:
+  - kind: appearance
+    name: pen
+    # One id per physical pen, in the order they are on the shelf. The ids
+    # are what the records and the report are keyed by, so keep them stable
+    # once anything has been collected; `descriptions` is what the operator
+    # reads on the badge and in the plots, and can be reworded any time.
+    #
+    # Put the pen the demos were recorded with FIRST — it is the control the
+    # others are read against. Replace the rest with what is on your bench.
+    variants: [demo_pen, pen_2, pen_3]
+    descriptions:
+      demo_pen: "pen from the demos"
+      pen_2: "second pen (edit me)"
+      pen_3: "third pen (edit me)"
+
+  # Fixed staging marks for the pen and the cup: a single-cell grid each, so
+  # the GUI draws a cross where each goes, the record carries the nominal
+  # position, and measure_positions.py can check the staging error afterwards.
+  # With one cell they add nothing to the plan. The paper has no mark of its
+  # own: it goes under the cup, and the cup's cross is where it should be.
+  - kind: grid_position
+    name: pen_position
+    # What measure_positions.py asks the perception pipeline to find. The
+    # detector sees the *actual* pen, so override per pen with
+    # `--query pen_position=<colour> pen` when the colour matters.
+    object: pen
+    grid:
+      name: pen
+      # Outer corner of the one cell, controller `base` frame. On this cell
+      # the arm works at negative x. z is the tabletop.
+      origin: [-0.35, 0.10, 0.0]
+      u_axis: [0.0, -1.0, 0.0]
+      v_axis: [-1.0, 0.0, 0.0]
+      cell_size_u: 0.10
+      cell_size_v: 0.10
+      rows: 1
+      cols: 1
+      # A pen lies flat, so its centroid is barely above the table.
+      marker_height: 0.01
+      up_hint: [0.0, 0.0, 1.0]
+
+  - kind: grid_position
+    name: cup_position
+    object: blue cup
+    grid:
+      name: cup
+      origin: [-0.35, -0.10, 0.0]
+      u_axis: [0.0, -1.0, 0.0]
+      v_axis: [-1.0, 0.0, 0.0]
+      cell_size_u: 0.10
+      cell_size_v: 0.10
+      rows: 1
+      cols: 1
+      # Half a cup's height, so the cross sits at its centroid rather than
+      # on the table underneath it.
+      marker_height: 0.05
+      up_hint: [0.0, 0.0, 1.0]
+
+# --- Later: vary the cup too ----------------------------------------------
+#
+# A second appearance factor multiplies the plan (3 x 3 x repeats), so drop
+# `repeats` when adding it, and give the experiment a new name — a changed
+# factor list is a different plan, and the store refuses to mix them. Note
+# the prompt says "blue cup", so a cup of another colour also changes what the
+# prompt means; reword `task:` to name the cup by where it stands if you do.
+#
+#  - kind: appearance
+#    name: cup
+#    variants: [demo_cup, blue_cup_2]
+#    descriptions:
+#      demo_cup: "blue cup from the demos"
+#      blue_cup_2: "second blue cup (edit me)"

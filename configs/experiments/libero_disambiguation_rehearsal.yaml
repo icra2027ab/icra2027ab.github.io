@@ -1,0 +1,55 @@
+# Hardware-free rehearsal of the disambiguation workflow.
+#
+# Same code path as the real experiment — same GUI, same overlay, same store,
+# same report, same per-rollout prompt template — against a LIBERO tabletop and
+# the in-process dummy policy. Use it to check the staging overlay, the
+# hotkeys, and that the prompt really does change per rollout, before going
+# anywhere near the arm.
+#
+#   MUJOCO_GL=egl python scripts/experiments/collect_experiment.py \
+#       --experiment.experiment-config configs/experiments/libero_disambiguation_rehearsal.yaml \
+#       --experiment.experiment-name disambiguation_rehearsal \
+#       --guidance.debug --guidance.fake-policy circular \
+#       --retrieval.no-enable --demo-analysis.no-enable --viz.no-enable \
+#     env:libero --env.task-suite-name libero_goal --env.perturb.no-swap \
+#     policy:openpi
+#
+# The region below is on the LIBERO tabletop (world z ~= 0.90, the robot base
+# sits at z = 0.912), the same surface libero_rehearsal.yaml puts its grid on.
+
+name: libero_disambiguation_rehearsal
+task: "Pick up the {target_object}."
+
+repeats: 1
+order: systematic
+grouping: condition
+seed: 0
+
+max_steps: 60     # short: this is a workflow check, not an evaluation
+timeout_s: 45
+
+view_scale: 3.0   # LIBERO renders 256x256; upscale for a real monitor
+
+factors:
+  - kind: object_layout
+    name: object_layout
+    objects: [black bowl, white plate, red mug]
+    layouts: 3
+    min_separation: 0.10
+    margin: 0.04
+    seed: 0
+    region:
+      name: objects
+      origin: [-0.30, -0.25, 0.90]
+      u_axis: [0.0, 1.0, 0.0]
+      v_axis: [1.0, 0.0, 0.0]
+      cell_size_u: 0.50
+      cell_size_v: 0.45
+      rows: 1
+      cols: 1
+      marker_height: 0.03
+      up_hint: [0.0, 0.0, 1.0]
+
+  - kind: target_object
+    name: target_object
+    layout: object_layout

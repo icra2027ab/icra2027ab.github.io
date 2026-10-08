@@ -1,0 +1,27 @@
+name: cable_in_box_position
+task: Put all cables in the bag.
+repeats: 3
+order: systematic
+grouping: condition
+seed: 0
+max_steps: 500
+timeout_s: 120.0
+camera: null
+view_scale: 2.0
+notes: ''
+factors:
+- kind: grid_position
+  name: cable_position
+  grid:
+    name: cable
+    origin: [-0.3, 0.125, 0.0]
+    u_axis: [0.0, -1.0, 0.0]
+    v_axis: [-1.0, 0.0, 0.0]
+    cell_size_u: 0.075
+    cell_size_v: 0.15
+    rows: 2
+    cols: 1
+    marker_height: 0.015
+    up_hint: [0.0, 0.0, 1.0]
+  cells: [A1, B1]
+  object: cable

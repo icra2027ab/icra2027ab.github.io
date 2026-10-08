@@ -1,0 +1,89 @@
+# Robotiq 2F-140 gripper geometry, as mounted on the UR5e cell.
+#
+# Selected by `GripperSpec.geometry_id="robotiq_2f140"` in
+# `policy_abstraction.envs.ur5.config`.
+#
+# The 140 mm stroke is confirmed against the hardware (2026-08-26). A
+# `robotiq_2f85.yaml` used to sit alongside this file describing an 85 mm
+# gripper that is not on this cell; it was unreferenced and has been removed,
+# because `action_to_metric` scales every gripper-related guidance distance by
+# the stroke and picking the wrong one is a silent 1.65x error.
+#
+# Frames (see robot_config.py):
+#
+#   action   what the policy emits — openness in [0, 1], clipped by
+#            `Ur5EnvServer._clamp_action`. 1 = open.
+#   qpos     what the env observes — also openness in [0, 1], because the
+#            server has already flipped the driver's 0=open convention
+#            (`--env.flip-gripper`, default on) and `aperture_op="identity"`
+#            passes it straight through. So action and qpos coincide here,
+#            unlike the Panda whose qpos is metric while its actions are not.
+#   metric   aperture in metres. The 2F-140's stroke is 140 mm.
+#
+# The 2F-140 is an articulated four-bar, not a parallel-jaw: its pads ride an
+# arc, so the fingertip retracts as the gripper opens. The `four_bar` block
+# below turns on that model (see `GripperGeometry.finger_z_offset`); without it
+# the tips would be pinned at a constant z, wrong by up to 30 mm at full open:
+#
+#     aperture (mm)     0     20     40     60     80    100    120    140
+#     z offset (mm)  0.00  -0.52  -2.10  -4.78  -8.68 -13.97 -20.93 -30.08
+#
+# Provenance: `radius` is *fitted to the linkage*, not read off a drawing. The
+# vendored menagerie model at
+# `src/policy_abstraction/assets/mujoco_menagerie/robotiq_2f140/2f140.xml` is
+# solved as a closed chain by `visualization.robot_assembly.build_linkage`
+# (closure residual <= 1.4e-16 m) and the pad-face midpoint measured across the
+# stroke; `radius` is the single value minimising the worst-case error against
+# that curve. Residual is 0.119 mm over 0-140 mm.
+# `tests/policy_steering/test_four_bar_gripper.py` re-runs that comparison, so
+# the numbers above are checked against the model rather than against
+# themselves. Re-run it if the vendored MJCF is updated.
+#
+# `finger_z_from_grip: 0.0` fixes that curve to zero at full closure, so the
+# grip site is the closed fingertip plane — which is what
+# `--env.tcp-offset 0.00052 0.00109 0.22347 0 0 0` configures on this cell.
+# `ur5e_forward_kinematics` returns that TCP and the guidance FK treats it as
+# the grip site. Re-measure if the TCP offset on the pendant changes.
+#
+# One approximation remains: the pad is carried on the *outer* finger while the
+# inner link keeps the pads parallel, so the true contact point is not exactly
+# a single arc. Fitting the contact face absorbs most of that -- 0.119 mm
+# residual against a 30 mm excursion. A plain linear fit leaves 8.3 mm, so the
+# arc is doing real work.
+
+robot: robotiq_2f140
+gripper:
+  # Axis of the TCP frame the jaws open along. On this cell the gripper is
+  # bolted to the coupler so the pads separate along the tool flange's x axis
+  # (left pad at -x, right pad at +x), which is also how menagerie's
+  # `robotiq_2f140` model sits on the UR5e's `attachment_site` at its default
+  # mount yaw. Measured against the cell (2026-09-02): with the Panda's y-axis
+  # convention the rendered gripper and every finger-anchored distance pair
+  # were rotated 90 deg about the tool axis relative to the real fingers.
+  # `--viz.gripper-mount-yaw-deg` must agree with this; a test in
+  # `tests/visualization/test_gripper_mount.py` checks that it does.
+  finger_axis: x
+  # Closed-state half-gap between grip-site centre and each pad face (m).
+  # The 2F-140's pads meet at full close, so there is no rest offset.
+  finger_x_rest: 0.0
+  # Offset from grip-site to fingertip along EEF z (m). Zero: the TCP this
+  # cell is configured with is already the fingertip plane.
+  finger_z_from_grip: 0.0
+  # Policy action channel -> metric aperture (m).
+  action_open: 1.0
+  action_close: 0.0
+  metric_open: 0.140
+  metric_close: 0.0
+  # Observed aperture -> metric aperture (m). Same normalised input as the
+  # action channel, hence the same bounds.
+  qpos_open: 1.0
+  qpos_close: 0.0
+  # Four-bar linkage. Both constants are cross-validated: they are the outer
+  # knuckle's lateral offset and the outer-finger link length declared in the
+  # official robotiq_2f_140 URDF (as shipped in robosuite's MJCF), and they
+  # match a least-squares circle fit to the pad path that model actually traces
+  # to within 9 um.
+  four_bar:
+    # Radius of the circle the pad face rides, centred on the grip site (m).
+    # Fitted to the vendored MJCF -- see the provenance note above.
+    radius: 0.09648

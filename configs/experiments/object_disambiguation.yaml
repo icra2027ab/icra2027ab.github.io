@@ -1,0 +1,116 @@
+# Experiment 2 — target disambiguation on "put the <object> in the bag".
+#
+# Several named objects sit on the table at once and the prompt names one of
+# them. The scene is identical across the objects of a given layout; only the
+# instruction changes. Any difference in success rate between objects is the
+# policy resolving — or failing to resolve — the reference in the prompt.
+#
+# Two factors, and the cross product is the plan:
+#
+#   object_layout   where all N objects go, re-sampled per layout
+#   target_object   which one the prompt names
+#
+# Re-sampling the positions per layout is the point. With the objects nailed to
+# fixed spots, "went to the named object" and "went to the same place as
+# always" are the same observation, and a policy that always grasps whatever is
+# nearest would score 1/N and look like it was reading the prompt.
+#
+# Run the same file twice, once per policy setting, so both arms sweep an
+# identical plan:
+#
+#   scripts/experiments/run_object_disambiguation_experiment.sh --baseline
+#   scripts/experiments/run_object_disambiguation_experiment.sh --guided
+#
+# The geometry below is a PLACEHOLDER. Measure your own cell and check it with
+# --calibrate before collecting anything; the numbers are in the UR5e base
+# frame, in metres, and a wrong origin puts the whole region off the table.
+
+name: object_disambiguation
+
+# A template. `{target_object}` is filled from the factor of that name, so the
+# policy gets "Put the black cable in the bag." on one rollout and
+# "Put the white cable in the bag." on the next. A task with no placeholder is
+# sent verbatim, which is what every other experiment here does.
+#
+# The wording outside the placeholder should be the phrasing the checkpoint was
+# trained on — it is still the prompt, and the checkpoint still only knows one.
+task: "Put the {target_object} in the bag."
+
+# 8 layouts x 3 objects x 1 repeat = 24 rollouts, ~35 minutes at 90 s each.
+#
+# Prefer more layouts to more repeats here. A repeat re-runs the *same* scene,
+# which buys precision on that scene; a layout is a new arrangement, which is
+# what decorrelates "which object" from "where it was" — and that correlation,
+# not sampling noise, is what would make a positional policy look like a
+# language-conditioned one.
+repeats: 1
+order: systematic
+grouping: condition
+seed: 0
+
+max_steps: 1250
+timeout_s: 120
+
+view_scale: 2.0
+
+factors:
+  - kind: object_layout
+    name: object_layout
+
+    # The objects, in the operator's words. Replace these with what is
+    # actually on your bench — and keep them tellable apart by the attribute
+    # the prompt uses, since that attribute is what is being tested.
+    #
+    # A bare string is enough; a mapping additionally sets the phrasing the
+    # policy is given, when that should differ from what the operator reads:
+    #
+    #   - id: black_cable
+    #     label: "black USB cable (coiled, left of the bag)"
+    #     prompt_name: "black cable"
+    objects:
+      - black cable
+      - white cable
+      - red cable
+
+    layouts: 8
+    # Metres between object centres. Two objects closer than this are hard to
+    # stage repeatably and hard to call a grasp between.
+    min_separation: 0.10
+    # Metres kept clear inside the region's edge: only the object's *centre* is
+    # sampled, and its body has to stay on the table too.
+    margin: 0.06
+    # Seeds the sampling. Two policy settings run with the same seed get the
+    # same layouts, which is the point. Each layout gets its own sub-seed, so
+    # raising `layouts` leaves the earlier ones — and the rollouts already
+    # collected against them — untouched.
+    seed: 0
+
+    # The patch of table the objects are scattered over. Same frame and same
+    # conventions as a `grid:` block (see cable_in_box_position.yaml); with
+    # rows: 1 and cols: 1 it is simply a rectangle, and `cell_size_u/v` are its
+    # width and height.
+    region:
+      name: objects
+      # Outer corner, in the controller's `base` frame (the frame RTDE
+      # reports poses in, not ROS/URDF `base_link` — see the `origin:`
+      # comment in cable_in_box_position.yaml). On this cell the arm works
+      # at negative x. z is the tabletop itself — `marker_height` does the
+      # lifting.
+      origin: [-0.25, 0.20, 0.0]
+      u_axis: [0.0, -1.0, 0.0]
+      v_axis: [-1.0, 0.0, 0.0]
+      cell_size_u: 0.40      # 40 cm across, y from  0.20 to -0.20
+      cell_size_v: 0.30      # 30 cm deep,   x from -0.25 to -0.55
+      rows: 1
+      cols: 1
+      # Half the object's height, so the cross sits where its centroid will be
+      # rather than on the tabletop underneath it.
+      marker_height: 0.015
+      up_hint: [0.0, 0.0, 1.0]
+
+  - kind: target_object
+    name: target_object
+    # Takes its levels from that factor's object list, so the objects are
+    # written once. The name is what fills `{target_object}` in `task` above:
+    # rename this factor and the placeholder has to change with it.
+    layout: object_layout

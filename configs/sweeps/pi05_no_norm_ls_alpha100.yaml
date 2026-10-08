@@ -1,0 +1,41 @@
+# End-to-end ablation: disable gradient L2-normalization, KEEP line search,
+# but raise the line-search bracket cap from 1.0 to 100 so the search can
+# reach a meaningful step size despite the small raw-gradient magnitude.
+#
+# (Original sweep set --guidance.no-line-search too, but at factor=1.0 the
+# raw gradient was ~0.001-0.01/element vs ~0.07/element for the unit-norm
+# baseline, so the correction was effectively zero. With line search ON
+# and max_alpha=100, the search will scale the step automatically.)
+#
+# All other knobs match the progress_relevance_pi05 baseline. VLM cache is
+# reused directly from that sweep's _shared_vlm_cache.
+#
+# Usage:
+#   python scripts/perturbation_sweep.py \
+#       --config configs/sweeps/pi05_no_norm_no_linesearch.yaml --gpus 0,1,2 --yes \
+#       --demo-analysis.cache-pairs --demo-analysis.cache-live-objects
+#
+# Cells: 4 suites x 2 perturbations = 8.
+
+output_run: pi05_no_norm_ls_alpha100
+
+base_args:
+  - --iter.num-trials-per-task
+  - "3"
+  - --guidance.no-normalize
+  - --guidance.line-search
+  - --guidance.max-alpha
+  - "100.0"
+  - --demo-analysis.vlm-cache-dir
+  - data/progress_relevance_pi05/_shared_vlm_cache/
+
+task_suites: [libero_spatial, libero_goal, libero_object, libero_10]
+perturbations: [swap, task]
+
+matrix:
+  # Pin the policy backend so it's explicit in the cell label.
+  policy:
+    openpi: [policy:openpi]
+
+cell_run_template: "{output_run}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

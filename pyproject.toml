@@ -1,0 +1,136 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+# MJCF models vendored under policy_abstraction/assets/ (see that directory's
+# PROVENANCE.md). setuptools ships only .py files unless told otherwise, and an
+# install missing the meshes fails at render time, not at import.
+[tool.setuptools.package-data]
+policy_abstraction = ["assets/**/*.xml", "assets/**/*.stl", "assets/**/LICENSE"]
+
+[project]
+name = "policy-abstraction"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "coloredlogs>=15.0.1",
+    "easydict>=1.13",
+    "einops>=0.8.1",
+    "flexprofiler>=0.1.5",
+    "h5py>=3.14.0",
+    "imageio[ffmpeg]>=2.37.0",
+    "loguru>=0.7.3",
+    "matplotlib>=3.10.6",
+    "moviepy>=1.0.3",
+    "numpy==1.23.3",
+    "open3d>=0.19.0",
+    "opencv-python>=4.5",
+    "pyopengl>=3.1.10",
+    "pyopengl-accelerate>=3.1.10",
+    "pyqt6>=6.9.1",
+    "pyyaml>=6.0.2",
+    "rerun-sdk==0.30.1",
+    "robot-descriptions>=1.22.0",
+    "scipy>=1.13.1",
+    "seaborn>=0.13.2",
+    "stable-baselines3[extra]>=2.7.0",
+    "tqdm>=4.67.1",
+    # >=4.56 ships Sam2Model / Sam2VideoModel, which open_perception's
+    # segmentation stage and SAM2 video tracker import. open_perception's own
+    # pin says transformers>=4.50, which resolves to a version without them —
+    # so the real floor has to live here. <5 keeps us on the 4.x API; the SAM3
+    # family (only needed by scripts/ablations/perception/sam3_*) lands in 5.0.
+    "transformers>=4.56,<5",
+    "wandb>=0.21.4",
+    "rerun-loader-mjcf>=1.0.1",
+    "websockets>=16.0",
+    "openpi-client==0.1.1",
+    "tyro>=1.0.8",
+    "msgpack-numpy>=0.4.8",
+    "robodm>=0.1.0",
+    "av<=13.1.0",
+    "openai>=2.28.0",
+    "jax>=0.9.2",
+    "diffusers>=0.37.0",
+    "accelerate>=1.13.0",
+    "dtaidistance>=2.4.0",
+    "policy-steering",
+    "opencv-python-headless>=4.13.0.92",
+    "open-perception",
+    "pyzmq>=27.1.0",
+    "python-dotenv>=1.0",
+    "pyqtgraph>=0.14.0",
+    "pyqt6-webengine>=6.11.0",
+]
+
+[tool.uv.sources]
+clip = { git = "https://github.com/openai/CLIP.git" }
+policy-steering = { path = "packages/policy_steering", editable = true }
+open-perception = { path = "packages/open_perception", editable = true }
+
+[dependency-groups]
+dev = [
+    "graphviz>=0.21",
+    "pyright>=1.1.408",
+    "ty>=0.0.24",
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "packages/policy_steering/src"]
+markers = [
+    "slow: marks tests as slow (deselect with -m 'not slow')",
+    "integration: tests requiring HDF5 files, network, or simulator",
+    "gpu: tests requiring a CUDA device",
+    "visual: tests that produce images for visual inspection (under tmp/)",
+]
+addopts = ["--tb=short", "--strict-markers"]
+
+[tool.coverage.run]
+source = ["policy_abstraction"]
+omit = [
+    "*/perception/*",
+    "*/envs/*",
+    "*/policies/*",
+    "*/visualization/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+show_missing = true
+
+[tool.uv]
+override-dependencies = ["numpy", "rerun-sdk", "av<=13.1.0"]
+
+[tool.ruff]
+src = ["src", "packages/policy_steering/src"]  # Helpful for recognizing first-party imports.
+indent-width = 4
+exclude = [
+    "data",
+    "tmp",
+    "docs",
+    "third_party",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B"]
+ignore = ["B011"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+ignore = ["./data", "./tmp", "./docs", "./third_party"]
+
+[tool.ty.src]
+exclude = ["data", "tmp", "docs", "third_party"]

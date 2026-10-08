@@ -1,0 +1,47 @@
+name: pen_appearance
+task: Place the pen in blue cup on paper.
+repeats: 5
+order: systematic
+grouping: condition
+seed: 0
+max_steps: 2000
+timeout_s: 1200.0
+camera: null
+view_scale: 2.0
+notes: ''
+factors:
+- kind: appearance
+  name: pen
+  variants: [demo_pen, pen_2, pen_3]
+  descriptions: {demo_pen: pen from the demos, pen_2: second pen (edit me), pen_3: third
+      pen (edit me)}
+- kind: grid_position
+  name: pen_position
+  grid:
+    name: pen
+    origin: [-0.35, 0.1, 0.0]
+    u_axis: [0.0, -1.0, 0.0]
+    v_axis: [-1.0, 0.0, 0.0]
+    cell_size_u: 0.1
+    cell_size_v: 0.1
+    rows: 1
+    cols: 1
+    marker_height: 0.01
+    up_hint: [0.0, 0.0, 1.0]
+  cells: [A1]
+  object: pen
+- kind: grid_position
+  name: cup_position
+  grid:
+    name: cup
+    origin: [-0.35, -0.1, 0.0]
+    u_axis: [0.0, -1.0, 0.0]
+    v_axis: [-1.0, 0.0, 0.0]
+    cell_size_u: 0.1
+    cell_size_v: 0.1
+    rows: 1
+    cols: 1
+    marker_height: 0.05
+    up_hint: [0.0, 0.0, 1.0]
+  cells: [A1]
+  object: blue cup

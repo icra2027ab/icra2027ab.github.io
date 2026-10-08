@@ -1,0 +1,26 @@
+# LIBERO-PRO evaluation perturbation config.
+# Loaded by src/policy_abstraction/envs/libero/server.py:_load_evaluation_config;
+# ${LIBERO_PRO_PATH} is expanded at read time.
+bddl_files_path: "${LIBERO_PRO_PATH}/libero/libero/bddl_files/"
+script_path: "${LIBERO_PRO_PATH}/notebooks/generate_init_states.py"
+init_file_dir: "${LIBERO_PRO_PATH}/libero/libero/init_files/"
+
+use_environment: true
+use_swap: false
+use_object: false
+use_language: false
+use_task: false
+
+ood_task_configs:
+  environment: "${LIBERO_PRO_PATH}/libero_ood/ood_environment.yaml"
+  swap: "${LIBERO_PRO_PATH}/libero_ood/ood_spatial_relation.yaml"
+  object: "${LIBERO_PRO_PATH}/libero_ood/ood_object.yaml"
+  language: "${LIBERO_PRO_PATH}/libero_ood/ood_language.yaml"
+  task: "${LIBERO_PRO_PATH}/libero_ood/ood_task.yaml"
+
+perturbation_mapping:
+  use_environment: env
+  use_swap: swap
+  use_object: object
+  use_language: lan
+  use_task: task

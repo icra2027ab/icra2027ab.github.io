@@ -1,0 +1,50 @@
+# Small guided-vs-unguided ablation for the Cosmos policy under REAL_PERCEPTION.
+# Question: does guidance actually help cosmos? Compares guided vs --no-guide on
+# the perturbations where guidance matters most (swap, task), across 2 suites.
+#
+# 2 suites x 2 perturbations x {guided, unguided} = 8 cells; 10 tasks x 4 trials.
+# MUST run from the MAIN repo (cosmos venv repaired there; guided-path fixes live
+# in main's cosmos_grounded_*). Launched on all 4 GPUs.
+#
+# Usage (from main repo):
+#   python scripts/perturbation_sweep.py --config configs/sweeps/cosmos_guidance_ablation.yaml --gpus 0,1,2,3
+
+output_run: cosmos_guidance_ablation
+
+base_args:
+  - --iter.num-trials-per-task
+  - "4"
+  - --perception.mode
+  - REAL_PERCEPTION
+  - --perception.detector-backend
+  - openrouter
+  - --perception.detector-model
+  - google/gemini-3-flash-preview
+
+task_suites: [libero_goal, libero_spatial]
+perturbations: [swap, task]
+
+matrix:
+  relevance:
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.05"
+      - --guidance.relevance-far-threshold
+      - "0.15"
+
+  # Guidance on/off. Ordered BEFORE the policy axis so --no-guide (a top-level
+  # Args flag) precedes the `policy:cosmos` subcommand token in the forwarded
+  # extras and is parsed as a top-level flag.
+  guide:
+    guided: []
+    unguided:
+      - --no-guide
+
+  policy:
+    cosmos:
+      - policy:cosmos
+      - --policy.suite
+      - libero
+
+cell_run_template: "{output_run}/{guide}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

@@ -1,0 +1,118 @@
+# Experiment 3 — appearance shift on "pour contents of blue cup into green cup".
+#
+# One factor that matters: WHICH cup is being poured from. The checkpoint was
+# trained on one blue cup; here it is asked to pour from several cups of the
+# same type — different colour, height, material, print — a few rollouts each,
+# so the success rate per cup says how far the policy generalises past the
+# object it was shown. The prompt does not change: it is still the phrase the
+# checkpoint was trained on, whatever is actually on the table.
+#
+# The operator swaps the cup by hand between conditions (the badge on the live
+# view says which one to stage). Both cups go on fixed staging marks, so the
+# only thing varying across rollouts is the cup itself — position gets its own
+# experiment, not this one. The prompt names the cups by where they stand
+# rather than by colour, so it stays true whichever cup is on the mark.
+#
+# Run the same file twice, once per policy setting, so both arms sweep an
+# identical plan:
+#
+#   scripts/experiments/run_pour_appearance_experiment.sh --baseline
+#   scripts/experiments/run_pour_appearance_experiment.sh --guided
+#
+# The geometry below is a PLACEHOLDER. Measure your own cell and check it with
+# --calibrate before collecting anything; the numbers are in the UR5e
+# controller's `base` frame, in metres (see the `origin:` comment in
+# cable_in_box_position.yaml — the wrong frame mirrors the marks off the table).
+
+name: pour_cup_appearance
+# Sent verbatim on every rollout (no placeholder). Note this is NOT the phrase
+# the demos were recorded with — that was "Pour contents of blue cup into green
+# cup." — so the policy is being asked in words it was not trained on as well
+# as shown a cup it was not trained on. Put the training phrase back here to
+# separate the two.
+task: "Pour the contents of the left cup into the right cup."
+
+# 3 cups x 5 repeats = 15 rollouts, ~25 minutes at 90 s each. Repeats are
+# grouped per cup (`grouping: condition`), so each cup is staged once and
+# left there for its five rollouts — the swap is the slow part.
+repeats: 5
+order: systematic
+grouping: condition
+seed: 0
+
+# The demos run ~1600 steps (about 33 s at 50 Hz); the cap leaves room for a
+# hesitant policy without letting a stuck one eat the afternoon.
+max_steps: 2500
+timeout_s: 120
+
+view_scale: 2.0
+
+factors:
+  - kind: appearance
+    name: source_cup
+    # One id per physical cup, in the order they are on the shelf. The ids
+    # are what the records and the report are keyed by, so keep them stable
+    # once anything has been collected; `descriptions` is what the operator
+    # reads on the badge and in the plots, and can be reworded any time.
+    #
+    # Put the cup the demos were recorded with FIRST — it is the control the
+    # others are read against. Replace the rest with what is on your bench.
+    variants: [demo_cup, cup_2, cup_3]
+    descriptions:
+      demo_cup: "blue cup from the demos"
+      cup_2: "second cup (edit me)"
+      cup_3: "third cup (edit me)"
+
+  # Fixed staging marks for both cups: a single-cell grid each, so the GUI
+  # draws a cross where the cup goes, the record carries the nominal position,
+  # and measure_positions.py can check the staging error afterwards. With one
+  # cell they add nothing to the plan.
+  - kind: grid_position
+    name: source_cup_position
+    # What measure_positions.py asks the perception pipeline to find. The
+    # detector sees the *actual* cup, which may well not be blue — override
+    # per cup with `--query source_cup_position=<colour> cup` when it matters.
+    object: cup
+    grid:
+      name: source
+      # Outer corner of the one cell, controller `base` frame. On this cell
+      # the arm works at negative x. z is the tabletop.
+      origin: [-0.35, 0.10, 0.0]
+      u_axis: [0.0, -1.0, 0.0]
+      v_axis: [-1.0, 0.0, 0.0]
+      cell_size_u: 0.10
+      cell_size_v: 0.10
+      rows: 1
+      cols: 1
+      # Half a cup's height, so the cross sits at its centroid rather than
+      # on the table underneath it.
+      marker_height: 0.05
+      up_hint: [0.0, 0.0, 1.0]
+
+  - kind: grid_position
+    name: receiving_cup_position
+    object: green cup
+    grid:
+      name: receiving
+      origin: [-0.35, -0.10, 0.0]
+      u_axis: [0.0, -1.0, 0.0]
+      v_axis: [-1.0, 0.0, 0.0]
+      cell_size_u: 0.10
+      cell_size_v: 0.10
+      rows: 1
+      cols: 1
+      marker_height: 0.05
+      up_hint: [0.0, 0.0, 1.0]
+
+# --- Later: vary the receiving cup too -----------------------------------
+#
+# A second appearance factor multiplies the plan (3 x 3 x repeats), so drop
+# `repeats` when adding it, and give the experiment a new name — a changed
+# factor list is a different plan, and the store refuses to mix them.
+#
+#  - kind: appearance
+#    name: receiving_cup
+#    variants: [demo_green_cup, green_cup_2]
+#    descriptions:
+#      demo_green_cup: "green cup from the demos"
+#      green_cup_2: "second green cup (edit me)"

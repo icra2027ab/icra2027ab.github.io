@@ -1,0 +1,49 @@
+# GR00T (NVIDIA Isaac GR00T N1.7) on LIBERO-PRO with the guidance framework.
+#
+# Mirrors configs/sweeps/pi05_guided.yaml (the data/pi05_guided_baseline run)
+# exactly — same task suites, perturbations, trial count, and guidance settings
+# (relevance loose: near=0.05, far=0.15; all other GuidanceArgs defaults:
+# factor=1.0, normalize=on, line_search=on, max_alpha=1.0). The only change is
+# the policy backend: openpi -> groot.
+#
+# GR00T differences vs pi05 baked in below:
+#   * --camera.resize-size 256: GR00T's LIBERO checkpoints expect the native
+#     256x256 frames, not pi05's 224. (pi05 default is 224.)
+#   * No --policy.model-path: evaluate.py auto-defaults it per task suite to
+#     checkpoints/GR00T-N1.7-LIBERO/<suite> (see Args.__post_init__), so each
+#     suite picks up its matched checkpoint automatically.
+#
+# Guidance is applied via GR00T's grounded action head (scripts/servers/
+# serve_groot.py monkey-patches Gr00tN1d7GroundedActionHead in), so the same
+# __gp_*__ guidance params used for pi05 steer GR00T's denoising loop.
+#
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/groot_guided.yaml --gpus 0,1,2,3
+
+output_run: groot_guided_baseline
+
+base_args:
+  - --iter.num-trials-per-task
+  - "10"
+  # GR00T LIBERO checkpoints consume native 256x256 frames (pi05 used 224).
+  - --camera.resize-size
+  - "256"
+
+task_suites: [libero_goal, libero_spatial, libero_object, libero_10]
+perturbations: [swap, task, object, language]
+
+matrix:
+  relevance:
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.05"
+      - --guidance.relevance-far-threshold
+      - "0.15"
+
+  # Pin the policy backend so it's explicit in the cell name. model_path is
+  # left unset on purpose — it auto-defaults per task suite.
+  policy:
+    groot: [policy:groot]
+
+cell_run_template: "{output_run}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

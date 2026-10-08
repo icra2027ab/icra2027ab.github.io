@@ -1,0 +1,201 @@
+You are a robotics expert. Given a manipulation task description, a scene image (original RGB), a segmentation-overlay image that labels every object with its numerical instance ID, a sub-trajectory overlay image showing the robot end-effector path split into numbered sub-trajectories (each drawn in a distinct bright colour and labelled ST0, ST1, …), and a list of objects (segmentation ID + name), select the most informative pairs of entities whose pairwise distance serves as a useful heuristic for guiding task execution.
+
+The special entity "ee" refers to the robot end-effector. The entities "gripper_l" and "gripper_r" refer to the left and right gripper finger tips respectively. Prefer "gripper_l" and "gripper_r" for any task that involves grasping, manipulating, or releasing objects with the fingers — they capture finger-level proximity (e.g. each finger to the target object) and gripper aperture ("gripper_l" to "gripper_r"). Only fall back to "ee" for tasks that do not involve the gripper fingers (e.g. pushing, pointing, or tool use where the end-effector as a whole is the relevant contact point).
+
+For each pair choose the most appropriate distance type:
+  - "centroid": Euclidean distance between the 3-D centroids of the two entities.
+  - "surface": Shortest distance between the surfaces of the two entities (useful when contact/proximity matters).
+  - "orientation": Projection of a body-frame vector of the end-effector onto a world-space reference direction. By default the tracked vector is the gripper's body z-axis (its "approach direction"), but you can set "ee_vector" to any body-frame direction (e.g. [1,0,0] for the gripper x-axis). Use when the orientation of the end-effector matters — e.g. ensuring the gripper approaches a target from above rather than from the side. Both "from_entity" and "to_entity" must be "ee" (the pair self-references). Requires either "axis" or "plane" (see below).
+  - "gripper_aperture": Scalar gripper opening (metres). Both entities must be the gripper fingers — set "from_entity": "gripper_l" and "to_entity": "gripper_r".
+
+Additionally, any pair can include at most ONE of the following optional component selectors to restrict the measurement to a subspace:
+  - "axis" [x,y,z]: For positional pairs (centroid/surface), signed 1-D projection of the distance vector onto this direction — e.g. axis=[0,0,1] for vertical clearance during a lift, axis=[1,0,0] for progress along X during an approach. For "orientation" pairs, signed cosine of the angle between the tracked body vector and this direction (in [-1, 1]) — e.g. axis=[0,0,-1] gives +1 when the body vector points straight down ("approach from above") and -1 when it points straight up.
+  - "plane" [nx,ny,nz]: For positional pairs, magnitude of the in-plane component after removing the contribution along this normal (2-D). Use for lateral alignment — e.g. plane=[0,0,1] gives XY-plane distance. For "orientation" pairs, magnitude of the tracked body vector projected into the plane perpendicular to the normal (in [0, 1]) — e.g. plane=[0,0,1] is 0 when the body vector is exactly vertical and 1 when it is fully horizontal.
+  - "ee_vector" [x,y,z]: Only for "orientation" pairs. Specifies which body-frame direction of the end-effector to track. Defaults to [0,0,1] (z-axis, the "approach direction"). Set to [1,0,0] to track the gripper x-axis, [0,1,0] for the y-axis, or any arbitrary body-frame direction. Useful when the task cares about a sideways alignment rather than approach direction — e.g. pouring, where the gripper's x-axis must point away from the target container, or wiping, where the gripper's y-axis must remain aligned with the travel direction.
+
+Set both "axis" and "plane" to null when the full 3-D distance is the right signal (positional pairs only — "orientation" pairs always need one).
+
+Group your output by sub-trajectory. For each sub-trajectory phase, provide a single "reasoning" string (1–2 sentences) that describes the goal of that phase and why the selected pairs are informative for it. Use subtraj_idx null for pairs that are equally relevant across all sub-trajectories.
+
+For each sub-trajectory you must also define sub-goal constraints:
+
+SUB-GOAL CONSTRAINTS ("sub_goal"):
+  Conditions that must be satisfied at the END of the sub-trajectory. They determine when to transition to the next sub-trajectory. Example: the end-effector must be within 3 cm of the mug before the grasp phase ends.
+
+  IMPORTANT: Sub-goal constraints must depend ONLY on the CURRENT state of the objects and end-effector — they may compare positions of entities visible in the scene at the moment of evaluation, but must NOT reference past positions, initial positions, or any temporal history. If you need a height reference, use a currently visible entity (e.g. the table, a container, or another scene object), not the object's own past position.
+
+Each constraint is expressed as a Python lambda string with the signature:
+  lambda ee, keypoints, ee_R: <scalar expression>
+where "ee" is a numpy array of shape (3,) with the end-effector XYZ position, "keypoints" is a dict mapping entity IDs (int or "ee") to numpy arrays of shape (3,) with their 3-D centroid positions, and "ee_R" is the world-from-EE rotation matrix as a numpy array of shape (3, 3). Within "ee_R", the third column "ee_R[:, 2]" is the gripper's body z-axis ("approach direction") expressed in world coordinates — use it to write orientation constraints such as "the gripper must point downward at end of approach". "ee_R[:, 0]" and "ee_R[:, 1]" are the other two body axes if a yaw-style constraint is needed. The constraint is SATISFIED when the returned scalar is <= 0. Use np for numpy operations. Entity IDs in keypoints match the segmentation IDs in the object list; "ee" maps to the end-effector centroid.
+
+The lambda is evaluated in a restricted sandbox where only the "np" (numpy) module is available. Python built-ins such as max/min/abs/sum are NOT accessible — use numpy equivalents (np.maximum, np.minimum, np.abs, np.sum) instead. The lambda must return a scalar (a Python float or 0-D numpy value).
+
+Example 1 — pick up a mug (2 sub-trajectories: approach ST0, lift ST1):
+{
+  "subtraj_idx": 0,
+  "reasoning": "During the approach phase the fingers must close in on the mug, so the surface distances from each finger to the mug are the primary signals. The gripper must also approach from above (z-axis pointing down), maintain vertical clearance, and keep the fingers horizontally aligned with the handle.",
+  "pairs": [
+    {"from_entity": "gripper_l", "to_entity": 2,    "label": "finger_l_to_mug",       "distance_type": "surface",     "axis": null,        "plane": null},
+    {"from_entity": "gripper_r", "to_entity": 2,    "label": "finger_r_to_mug",       "distance_type": "surface",     "axis": null,        "plane": null},
+    {"from_entity": "gripper_l", "to_entity": 2,    "label": "finger_l_to_mug_z",     "distance_type": "centroid",    "axis": [0, 0, 1],   "plane": null},
+    {"from_entity": "ee",        "to_entity": "ee", "label": "gripper_down_alignment", "distance_type": "orientation", "axis": [0, 0, -1], "plane": null, "ee_vector": null},
+    {"from_entity": "ee",        "to_entity": "ee", "label": "gripper_side_alignment", "distance_type": "orientation", "axis": [0, 0, 1],  "plane": null, "ee_vector": [0, 1, 0]}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "fingers_near_mug_sg",
+      "description": "Both finger tips must be within 8 cm of the mug centroid at the end of approach.",
+      "expression": "lambda ee, keypoints, ee_R: np.maximum(np.linalg.norm(keypoints['gripper_l'] - keypoints[2]), np.linalg.norm(keypoints['gripper_r'] - keypoints[2])) - 0.08",
+      "reasoning": "Ensures the fingers have reached grasping distance before transitioning to the lift phase."
+    },
+    {
+      "label": "gripper_pointing_down_sg",
+      "description": "Gripper z-axis must be within ~30° of straight-down at the end of approach (cos(30°) ≈ 0.85).",
+      "expression": "lambda ee, keypoints, ee_R: 0.85 - np.dot(ee_R[:, 2], np.array([0.0, 0.0, -1.0]))",
+      "reasoning": "Confirms the gripper is well-aligned to a top-down grasp before the lift phase begins."
+    }
+  ]
+},
+{
+  "subtraj_idx": 1,
+  "reasoning": "The lift phase raises the grasped mug off the table; the Z-axis projection captures vertical progress while ignoring lateral offset.",
+  "pairs": [
+    {"from_entity": 2, "to_entity": 1, "label": "mug_table_z", "distance_type": "centroid", "axis": [0, 0, 1], "plane": null}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "mug_lifted_sg",
+      "description": "Mug centroid must be at least 10 cm above the table centroid.",
+      "expression": "lambda ee, keypoints, ee_R: 0.10 - (keypoints[2][2] - keypoints[1][2])",
+      "reasoning": "Confirms the mug has been successfully lifted before the episode ends."
+    }
+  ]
+}
+
+Example 2 — Pick the object and place it in the container (2 sub-trajectories: approach ST0, transport ST1):
+{
+  "subtraj_idx": 0,
+  "reasoning": "ST0 is the approach-and-grasp phase for the object. The most informative signals are the finger-to-object surface distances and maintaining horizontal alignment between the fingers and the object.",
+  "pairs": [
+    {"from_entity": "gripper_l", "to_entity": 1,           "label": "finger_l_to_object",    "distance_type": "surface",  "axis": null, "plane": null},
+    {"from_entity": "gripper_r", "to_entity": 1,           "label": "finger_r_to_object",    "distance_type": "surface",  "axis": null, "plane": null},
+    {"from_entity": "gripper_l", "to_entity": 1,           "label": "finger_l_to_object_xy", "distance_type": "centroid", "axis": null, "plane": [0, 0, 1]}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "fingers_near_object_sg",
+      "description": "Both finger tips must be within 7 cm of the object centroid at the end of the approach phase.",
+      "expression": "lambda ee, keypoints, ee_R: np.maximum(np.linalg.norm(keypoints['gripper_l'] - keypoints[1]), np.linalg.norm(keypoints['gripper_r'] - keypoints[1])) - 0.07",
+      "reasoning": "This indicates the fingers have reached grasping proximity to the object before transitioning to transport."
+    }
+  ]
+},
+{
+  "subtraj_idx": 1,
+  "reasoning": "ST1 transports the grasped object and lowers it into the container. The key signals are horizontal alignment between object and container and then proximity to the container interior while maintaining enough height to avoid premature contact with the container rim.",
+  "pairs": [
+    {"from_entity": 1, "to_entity": 2, "label": "object_to_container_xy", "distance_type": "centroid", "axis": null,      "plane": [0, 0, 1]},
+    {"from_entity": 1, "to_entity": 2, "label": "object_to_container",    "distance_type": "centroid", "axis": null,      "plane": null},
+    {"from_entity": 1, "to_entity": 2, "label": "object_to_container_z",  "distance_type": "centroid", "axis": [0, 0, 1], "plane": null}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "object_in_container_xy_sg",
+      "description": "Object centroid must be horizontally within 6 cm of the container centroid at the end of placement.",
+      "expression": "lambda ee, keypoints, ee_R: np.linalg.norm((keypoints[1] - keypoints[2])[:2]) - 0.06",
+      "reasoning": "This ensures the object is laterally aligned with the container opening at the end of the placement motion."
+    },
+    {
+      "label": "object_lowered_into_container_sg",
+      "description": "Object centroid must be no more than 8 cm above the container centroid at the end of placement.",
+      "expression": "lambda ee, keypoints, ee_R: (keypoints[1][2] - keypoints[2][2]) - 0.08",
+      "reasoning": "This confirms the object has been lowered into the container region rather than remaining high above it."
+    }
+  ]
+}
+
+Example 3 — Grasp a small object and transport it to a target zone (3 sub-trajectories: approach ST0, grasp-and-lift ST1, transport ST2):
+{
+  "subtraj_idx": 0,
+  "reasoning": "ST0 is the approach phase: the fingers must close in on the object with good horizontal alignment before grasping.",
+  "pairs": [
+    {"from_entity": "gripper_l", "to_entity": 1, "label": "finger_l_to_object",    "distance_type": "surface",  "axis": null, "plane": null},
+    {"from_entity": "gripper_r", "to_entity": 1, "label": "finger_r_to_object",    "distance_type": "surface",  "axis": null, "plane": null},
+    {"from_entity": "gripper_l", "to_entity": 1, "label": "finger_l_to_object_xy", "distance_type": "centroid", "axis": null, "plane": [0, 0, 1]}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "fingers_near_object_sg",
+      "description": "Both finger tips must be within 7 cm of the object centroid.",
+      "expression": "lambda ee, keypoints, ee_R: np.maximum(np.linalg.norm(keypoints['gripper_l'] - keypoints[1]), np.linalg.norm(keypoints['gripper_r'] - keypoints[1])) - 0.07",
+      "reasoning": "The fingers have reached grasping proximity."
+    }
+  ]
+},
+{
+  "subtraj_idx": 1,
+  "reasoning": "ST1 is the grasp-and-lift phase. The gripper fingers must close around the object and then lift it. Monitoring finger-to-object surface distances confirms the fingers are positioned around the object; the gripper aperture tracks finger closure.",
+  "pairs": [
+    {"from_entity": "gripper_l", "to_entity": 1,           "label": "finger_l_to_object",  "distance_type": "surface",  "axis": null, "plane": null},
+    {"from_entity": "gripper_r", "to_entity": 1,           "label": "finger_r_to_object",  "distance_type": "surface",  "axis": null, "plane": null},
+    {"from_entity": "gripper_l", "to_entity": "gripper_r", "label": "gripper_aperture",    "distance_type": "centroid", "axis": null, "plane": null}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "object_lifted_sg",
+      "description": "Object centroid must be at least 5 cm above the table (entity 3) centroid.",
+      "expression": "lambda ee, keypoints, ee_R: 0.05 - (keypoints[1][2] - keypoints[3][2])",
+      "reasoning": "Confirms the object has been lifted off the table by comparing against the current table height."
+    }
+  ]
+},
+{
+  "subtraj_idx": 2,
+  "reasoning": "ST2 transports the grasped object to the target zone. The gripper must remain closed throughout transport to avoid dropping the object.",
+  "pairs": [
+    {"from_entity": 1, "to_entity": 2, "label": "object_to_target_xy", "distance_type": "centroid", "axis": null, "plane": [0, 0, 1]},
+    {"from_entity": 1, "to_entity": 2, "label": "object_to_target",    "distance_type": "centroid", "axis": null, "plane": null}
+  ],
+  "sub_goal_constraints": [
+    {
+      "label": "object_at_target_sg",
+      "description": "Object centroid must be within 5 cm of the target zone.",
+      "expression": "lambda ee, keypoints, ee_R: np.linalg.norm(keypoints[1] - keypoints[2]) - 0.05",
+      "reasoning": "Object has reached the target location."
+    }
+  ]
+}
+
+Return JSON with the following schema:
+{
+  "subtrajectories": [
+    {
+      "subtraj_idx": <int or null>,
+      "reasoning": <string>,
+      "pairs": [
+        {
+          "from_entity": <int or "ee" or "gripper_l" or "gripper_r">,
+          "to_entity": <int or "ee" or "gripper_l" or "gripper_r">,
+          "label": <string>,
+          "distance_type": <"centroid"|"surface"|"orientation"|"gripper_aperture">,
+          "axis": <[x,y,z] or null>,
+          "plane": <[nx,ny,nz] or null>,
+          "ee_vector": <[x,y,z] or null>
+        },
+        ...
+      ],
+      "sub_goal_constraints": [
+        {
+          "label": <string>,
+          "description": <string>,
+          "expression": <python lambda string>,
+          "reasoning": <string>
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+
+Only include clearly relevant pairs and constraints for each specified sub-trajectory.

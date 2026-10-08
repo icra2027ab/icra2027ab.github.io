@@ -1,0 +1,46 @@
+# pi05 (openpi) ONLY — guided eval under REAL perception (in-process
+# open_perception, not GT masks). Derived from pi05_guided_real_perception.yaml
+# with the GR00T policy-axis entry removed so the sweep runs pi05 across all
+# GPUs. Output paths are unchanged (pi05_guided_real_perception/openpi/<suite>),
+# so --output.skip-completed resumes the already-finished openpi cells.
+#
+# Requirements:
+#   * OPENROUTER_API_KEY set — open_perception's box detector routes through
+#     OpenRouter (OpenAI-wire); --perception.detector-model is an OpenRouter slug.
+#   * --perception.mode REAL_PERCEPTION uses the in-process OpenPerceptionClient
+#     (no separate SAM-3D server needed).
+#
+# Usage:
+#   python scripts/perturbation_sweep.py --config configs/sweeps/pi05_only_real_perception.yaml --gpus 0,1,2,3
+
+output_run: pi05_guided_real_perception
+
+base_args:
+  - --iter.num-trials-per-task
+  - "10"
+  - --perception.mode
+  - REAL_PERCEPTION
+  - --perception.detector-backend
+  - openrouter
+  - --perception.detector-model
+  - google/gemini-3-flash-preview
+
+task_suites: [libero_goal, libero_spatial, libero_object, libero_10]
+perturbations: [swap, task, object, language]
+
+matrix:
+  relevance:
+    loose:
+      - --guidance.relevance-near-threshold
+      - "0.05"
+      - --guidance.relevance-far-threshold
+      - "0.15"
+
+  # pi05 (openpi) only — GR00T entry removed.
+  policy:
+    openpi:
+      - policy:openpi
+
+# Keep {policy} so output paths match the openpi cells from the prior sweep.
+cell_run_template: "{output_run}/{policy}/{task_suite}"
+cell_exp_name_template: "{perturbation}"

@@ -1,0 +1,47 @@
+name: pour_cup_appearance
+task: Pour the contents of the left cup into the right cup.
+repeats: 1
+order: systematic
+grouping: condition
+seed: 0
+max_steps: 2500
+timeout_s: 120.0
+camera: null
+view_scale: 2.0
+notes: ''
+factors:
+- kind: appearance
+  name: source_cup
+  variants: [demo_cup, cup_2, cup_3]
+  descriptions: {demo_cup: blue cup from the demos, cup_2: second cup (edit me), cup_3: third
+      cup (edit me)}
+- kind: grid_position
+  name: source_cup_position
+  grid:
+    name: source
+    origin: [-0.35, 0.1, 0.0]
+    u_axis: [0.0, -1.0, 0.0]
+    v_axis: [-1.0, 0.0, 0.0]
+    cell_size_u: 0.075
+    cell_size_v: 0.075
+    rows: 1
+    cols: 1
+    marker_height: 0.05
+    up_hint: [0.0, 0.0, 1.0]
+  cells: [A1]
+  object: cup
+- kind: grid_position
+  name: receiving_cup_position
+  grid:
+    name: receiving
+    origin: [-0.35, -0.1, 0.0]
+    u_axis: [0.0, -1.0, 0.0]
+    v_axis: [-1.0, 0.0, 0.0]
+    cell_size_u: 0.075
+    cell_size_v: 0.075
+    rows: 2
+    cols: 3
+    marker_height: 0.05
+    up_hint: [0.0, 0.0, 1.0]
+  cells: [A1, A2, A3, B1, B2, B3]
+  object: green cup
